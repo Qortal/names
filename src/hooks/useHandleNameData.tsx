@@ -2,11 +2,13 @@ import { useSetAtom } from 'jotai';
 import { forSaleAtom, namesAtom } from '../state/global/names';
 import { useCallback, useEffect } from 'react';
 import { useGlobal } from 'qapp-core';
+import { usePendingTxs } from './useHandlePendingTxs';
 
 export const useHandleNameData = () => {
   const setNamesForSale = useSetAtom(forSaleAtom);
   const setNames = useSetAtom(namesAtom);
   const address = useGlobal().auth.address;
+  const { clearPendingTxs } = usePendingTxs();
 
   const getNamesForSale = useCallback(async () => {
     try {
@@ -28,6 +30,11 @@ export const useHandleNameData = () => {
         offset: 0,
         reverse: false,
       });
+      clearPendingTxs(
+        'REGISTER_NAMES',
+        'name',
+        res?.map((item) => item.name)
+      );
       setNames(res);
     } catch (error) {
       console.error(error);
@@ -43,8 +50,8 @@ export const useHandleNameData = () => {
 
   useEffect(() => {
     getMyNames();
-    const interval = setInterval(getMyNames, 120_000); // every 2 minutes
-    return () => clearInterval(interval);
+    // const interval = setInterval(getMyNames, 120_000); // every 2 minutes
+    // return () => clearInterval(interval);
   }, [getMyNames]);
 
   return null;

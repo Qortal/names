@@ -8,12 +8,23 @@ import {
   Paper,
   Button,
 } from '@mui/material';
-import { useAtom } from 'jotai';
+import { useAtom, useSetAtom } from 'jotai';
 import { forwardRef, useMemo } from 'react';
 import { TableVirtuoso, TableComponents } from 'react-virtuoso';
-import { forSaleAtom, namesAtom } from '../../state/global/names';
+import {
+  forSaleAtom,
+  namesAtom,
+  pendingTxsAtom,
+} from '../../state/global/names';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import {
+  dismissToast,
+  showError,
+  showLoading,
+  showSuccess,
+  useGlobal,
+} from 'qapp-core';
 
 interface NameData {
   name: string;
@@ -78,21 +89,53 @@ function fixedHeaderContent(
   );
 }
 
-function rowContent(_index: number, row: NameData) {
-  const handleUpdate = () => {
-    console.log('Update:', row.name);
-    // Your logic here
-  };
-
+function rowContent(
+  _index: number,
+  row: NameData,
+  setPendingTxs,
+  setNames,
+  setNamesForSale,
+  address
+) {
   const handleBuy = async (name: string) => {
+    const loadId = showLoading('Attempting to purchase name...please wait');
+
     try {
-      console.log('hello');
-      await qortalRequest({
+      const res = await qortalRequest({
         action: 'BUY_NAME',
         nameForSale: name,
       });
+      showSuccess('Purchased name');
+      setPendingTxs((prev) => {
+        return {
+          ...prev, // preserve existing categories
+          ['BUY_NAME']: {
+            ...(prev['BUY_NAME'] || {}), // preserve existing transactions in this category
+            [res.signature]: {
+              ...res,
+              status: 'PENDING',
+              callback: () => {
+                setNamesForSale((prev) =>
+                  prev.filter((item) => item?.name !== res.name)
+                );
+                setNames((prev) => [
+                  ...prev,
+                  {
+                    name: res.name,
+                    owner: res.creatorAddress,
+                  },
+                ]);
+              },
+            }, // add or overwrite this transaction
+          },
+        };
+      });
     } catch (error) {
+      showError(error?.message || 'Unable to purchase name');
+
       console.log('error', error);
+    } finally {
+      dismissToast(loadId);
     }
   };
 
@@ -119,6 +162,11 @@ export const ForSaleTable = ({
   sortBy,
   handleSort,
 }) => {
+  const address = useGlobal().auth.address;
+  const setNames = useSetAtom(namesAtom);
+  const setNamesForSale = useSetAtom(forSaleAtom);
+  const setPendingTxs = useSetAtom(pendingTxsAtom);
+
   return (
     <Paper
       sx={{
@@ -132,7 +180,16 @@ export const ForSaleTable = ({
         fixedHeaderContent={() =>
           fixedHeaderContent(sortBy, sortDirection, handleSort)
         }
-        itemContent={rowContent}
+        itemContent={(index, row) =>
+          rowContent(
+            index,
+            row,
+            setPendingTxs,
+            setNames,
+            setNamesForSale,
+            address
+          )
+        }
       />
     </Paper>
   );

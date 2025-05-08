@@ -3,6 +3,7 @@ import { useIframe } from '../hooks/useIframeListener';
 import { AppBar, Toolbar, Button, Box, useTheme } from '@mui/material';
 import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
 import StorefrontIcon from '@mui/icons-material/Storefront';
+import { PendingTxsTable } from '../components/Tables/PendingTxsTable';
 
 const Layout = () => {
   useIframe();
@@ -54,6 +55,7 @@ const Layout = () => {
 
       <Box component="main">
         <main>
+          <PendingTxsTable />
           <Outlet />
         </main>
       </Box>

@@ -5,10 +5,6 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
   styled,
   TextField,
   Typography,
@@ -23,10 +19,11 @@ import {
   useGlobal,
 } from 'qapp-core';
 import { useEffect, useState } from 'react';
-import RadioButtonCheckedIcon from '@mui/icons-material/RadioButtonChecked';
 import { BarSpinner } from '../common/Spinners/BarSpinner/BarSpinner';
 import CheckIcon from '@mui/icons-material/Check';
 import ErrorIcon from '@mui/icons-material/Error';
+import { useSetAtom } from 'jotai';
+import { namesAtom, pendingTxsAtom } from '../state/global/names';
 export enum Availability {
   NULL = 'null',
   LOADING = 'loading',
@@ -45,20 +42,47 @@ const Label = styled('label')`
 const RegisterName = () => {
   const [isOpen, setIsOpen] = useState(false);
   const balance = useGlobal().auth.balance;
+  const setNames = useSetAtom(namesAtom);
+
+  const address = useGlobal().auth.address;
   const [nameValue, setNameValue] = useState('');
   const [isNameAvailable, setIsNameAvailable] = useState<Availability>(
     Availability.NULL
   );
+  const setPendingTxs = useSetAtom(pendingTxsAtom);
+
   const [isLoadingRegisterName, setIsLoadingRegisterName] = useState(false);
   const theme = useTheme();
   const [nameFee, setNameFee] = useState(null);
   const registerNameFunc = async () => {
+    if (!address) return;
     const loadId = showLoading('Registering name...please wait');
     try {
       setIsLoadingRegisterName(true);
-      await qortalRequest({
+      const res = await qortalRequest({
         action: 'REGISTER_NAME',
         name: nameValue,
+      });
+      setPendingTxs((prev) => {
+        return {
+          ...prev, // preserve existing categories
+          ['REGISTER_NAME']: {
+            ...(prev['REGISTER_NAME'] || {}), // preserve existing transactions in this category
+            [res.signature]: {
+              ...res,
+              status: 'PENDING',
+              callback: () => {
+                setNames((prev) => [
+                  ...prev,
+                  {
+                    name: res.name,
+                    owner: res.creatorAddress,
+                  },
+                ]);
+              },
+            }, // add or overwrite this transaction
+          },
+        };
       });
       showSuccess('Successfully registered a name');
       setNameValue('');

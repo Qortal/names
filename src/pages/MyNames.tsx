@@ -24,7 +24,6 @@ export const MyNames = () => {
 
   const filteredNames = useMemo(() => {
     const lowerFilter = filterValue.trim().toLowerCase();
-    console.log('lowerFilter', lowerFilter, names);
     const filtered = !lowerFilter
       ? names
       : names.filter((item) => item.name.toLowerCase().includes(lowerFilter));

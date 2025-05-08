@@ -1,6 +1,7 @@
-import { Routes } from "./Routes";
-import { GlobalProvider } from "qapp-core";
-import { publicSalt } from "./qapp-config.ts";
+import { Routes } from './Routes';
+import { GlobalProvider } from 'qapp-core';
+import { publicSalt } from './qapp-config.ts';
+import { PendingTxsProvider } from './state/contexts/PendingTxsProvider.tsx';
 
 export const AppWrapper = () => {
   return (
@@ -14,10 +15,12 @@ export const AppWrapper = () => {
           authenticateOnMount: true,
         },
         publicSalt: publicSalt,
-        appName: 'names'
+        appName: 'names',
       }}
     >
-      <Routes />
+      <PendingTxsProvider>
+        <Routes />
+      </PendingTxsProvider>
     </GlobalProvider>
   );
 };

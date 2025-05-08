@@ -65,9 +65,6 @@ export const Market = () => {
     [sortBy]
   );
 
-  console.log('sortDirection', sortDirection);
-  console.log('sortBy', sortBy);
-
   return (
     <div>
       <Box
