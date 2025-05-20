@@ -4,16 +4,26 @@ import { AppBar, Toolbar, Button, Box, useTheme } from '@mui/material';
 import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import { PendingTxsTable } from '../components/Tables/PendingTxsTable';
+import { useTranslation } from 'react-i18next';
 
 const Layout = () => {
   useIframe();
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
+  const { t } = useTranslation(['core']);
 
   const navItems = [
-    { label: 'My names', path: '/', Icon: FormatListBulletedIcon },
-    { label: 'Names for sale', path: '/market', Icon: StorefrontIcon },
+    {
+      label: t('core:header.my_names', { postProcess: 'capitalize' }),
+      path: '/',
+      Icon: FormatListBulletedIcon,
+    },
+    {
+      label: t('core:header.market', { postProcess: 'capitalize' }),
+      path: '/market',
+      Icon: StorefrontIcon,
+    },
   ];
 
   return (

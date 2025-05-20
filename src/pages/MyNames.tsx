@@ -4,8 +4,11 @@ import { namesAtom, primaryNameAtom } from '../state/global/names';
 import { NameTable } from '../components/Tables/NameTable';
 import { Box, TextField } from '@mui/material';
 import RegisterName from '../components/RegisterName';
+import { useTranslation } from 'react-i18next';
 
 export const MyNames = () => {
+  const { t } = useTranslation(['core']);
+
   const [names] = useAtom(namesAtom);
   const [value, setValue] = useState('');
   const [filterValue, setFilterValue] = useState('');
@@ -50,7 +53,9 @@ export const MyNames = () => {
       >
         {' '}
         <TextField
-          placeholder="Filter names"
+          placeholder={t('core:inputs.filter_names', {
+            postProcess: 'capitalize',
+          })}
           value={value}
           onChange={(e) => setValue(e.target.value)}
           size="small"

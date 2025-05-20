@@ -30,6 +30,7 @@ import {
   primaryNameAtom,
 } from '../state/global/names';
 import { Availability } from '../interfaces';
+import { useTranslation } from 'react-i18next';
 
 const Label = styled('label')`
   display: block;
@@ -40,6 +41,8 @@ const Label = styled('label')`
 `;
 
 const RegisterName = () => {
+  const { t } = useTranslation(['core']);
+
   const [isOpen, setIsOpen] = useState(false);
   const balance = useGlobal().auth.balance;
   const setNames = useSetAtom(namesAtom);
@@ -77,7 +80,11 @@ const RegisterName = () => {
   }, [namesForSale, primaryName, pendingTxs]);
   const registerNameFunc = async () => {
     if (!address) return;
-    const loadId = showLoading('Registering name...please wait');
+    const loadId = showLoading(
+      t('core:new_name.responses.loading', {
+        postProcess: 'capitalize',
+      })
+    );
     try {
       setIsLoadingRegisterName(true);
       const res = await qortalRequest({
@@ -105,14 +112,22 @@ const RegisterName = () => {
           },
         };
       });
-      showSuccess('Successfully registered a name');
+      showSuccess(
+        t('core:new_name.responses.success', {
+          postProcess: 'capitalize',
+        })
+      );
       setNameValue('');
       setIsOpen(false);
     } catch (error) {
       if (error instanceof Error) {
         showError(error.message);
       } else {
-        showError('Unable to register name');
+        showError(
+          t('core:new_name.responses.error', {
+            postProcess: 'capitalize',
+          })
+        );
       }
     } finally {
       setIsLoadingRegisterName(false);
@@ -175,14 +190,20 @@ const RegisterName = () => {
           flexShrink: 0,
         }}
       >
-        new name
+        {t('core:actions.new_name', {
+          postProcess: 'capitalize',
+        })}
       </Button>
       <Dialog
         open={isOpen}
         aria-labelledby="alert-dialog-title"
         aria-describedby="alert-dialog-description"
       >
-        <DialogTitle id="alert-dialog-title">{'Register name'}</DialogTitle>
+        <DialogTitle id="alert-dialog-title">
+          {t('core:actions.register_name', {
+            postProcess: 'capitalize',
+          })}
+        </DialogTitle>
         <DialogContent>
           <Box
             sx={{
@@ -197,13 +218,15 @@ const RegisterName = () => {
               padding: '10px',
             }}
           >
-            <Label>Choose a name</Label>
+            <Label></Label>
             <TextField
               autoComplete="off"
               autoFocus
               onChange={(e) => setNameValue(e.target.value)}
               value={nameValue}
-              placeholder="Choose a name"
+              placeholder={t('core:new_name.choose_name', {
+                postProcess: 'capitalize',
+              })}
             />
             {(!balance || (nameFee && balance && balance < nameFee)) && (
               <>
@@ -221,8 +244,11 @@ const RegisterName = () => {
                     }}
                   />
                   <Typography>
-                    Your balance is {balance ?? 0} QORT. A name registration
-                    requires a {nameFee} QORT fee
+                    {t('balance_message', {
+                      balance: balance ?? 0,
+                      nameFee,
+                      postProcess: 'capitalize',
+                    })}
                   </Typography>
                 </Box>
                 <Spacer height="10px" />
@@ -242,7 +268,9 @@ const RegisterName = () => {
                     color: theme.palette.text.primary,
                   }}
                 />
-                <Typography>{nameValue} is available</Typography>
+                <Typography>
+                  {t('core:new_name.name_available', { name: nameValue })}
+                </Typography>
               </Box>
             )}
             {isNameAvailable === Availability.NOT_AVAILABLE && (
@@ -258,7 +286,9 @@ const RegisterName = () => {
                     color: theme.palette.text.primary,
                   }}
                 />
-                <Typography>{nameValue} is unavailable</Typography>
+                <Typography>
+                  {t('core:new_name.name_unavailable', { name: nameValue })}
+                </Typography>
               </Box>
             )}
             {isNameAvailable === Availability.LOADING && (
@@ -270,7 +300,11 @@ const RegisterName = () => {
                 }}
               >
                 <BarSpinner width="16px" color={theme.palette.text.primary} />
-                <Typography>Checking if name already existis</Typography>
+                <Typography>
+                  {t('core:new_name.checking_name', {
+                    postProcess: 'capitalize',
+                  })}
+                </Typography>
               </Box>
             )}
           </Box>
@@ -284,7 +318,9 @@ const RegisterName = () => {
               setNameValue('');
             }}
           >
-            Close
+            {t('core:actions.close', {
+              postProcess: 'capitalize',
+            })}
           </Button>
           <Button
             disabled={Boolean(
@@ -298,7 +334,9 @@ const RegisterName = () => {
             onClick={registerNameFunc}
             autoFocus
           >
-            Register Name
+            {t('core:actions.register_name', {
+              postProcess: 'capitalize',
+            })}
           </Button>
         </DialogActions>
       </Dialog>

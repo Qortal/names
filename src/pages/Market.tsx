@@ -8,8 +8,11 @@ import {
 } from '../state/global/names';
 import { useAtom } from 'jotai';
 import { SortBy, SortDirection } from '../interfaces';
+import { useTranslation } from 'react-i18next';
 
 export const Market = () => {
+  const { t } = useTranslation(['core']);
+
   const [namesForSale] = useAtom(forSaleAtom);
   const [pendingTxs] = useAtom(pendingTxsAtom);
   const [primaryName] = useAtom(primaryNameAtom);
@@ -106,7 +109,9 @@ export const Market = () => {
         }}
       >
         <TextField
-          placeholder="Filter names"
+          placeholder={t('core:inputs.filter_names', {
+            postProcess: 'capitalize',
+          })}
           value={value}
           onChange={(e) => setValue(e.target.value)}
           size="small"

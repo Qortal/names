@@ -1,0 +1,26 @@
+{
+  "header": {
+    "my_names": "my names",
+    "market": "names for sale"
+  },
+  "inputs": {
+    "filter_names": "filter names"
+  },
+  "actions": {
+    "new_name": "new name",
+    "register_name": "register name",
+    "close": "close"
+  },
+  "new_name": {
+    "choose_name": "choose a name",
+    "balance_message": "Your balance is {{balance}} QORT. A name registration requires a {{nameFee}} QORT fee.",
+    "name_available": "{{name}} is available",
+    "name_unavailable": "{{name}} is unavailable",
+    "checking_name": "checking if name already exists",
+    "responses": {
+      "success": "successfully registered a name",
+      "error": "unable to register name",
+      "loading": "Registering name...please wait"
+    }
+  }
+}
