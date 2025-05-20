@@ -24,6 +24,8 @@ import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import { dismissToast, showError, showLoading, showSuccess } from 'qapp-core';
 import { SetStateAction } from 'jotai';
 import { SortBy, SortDirection } from '../../interfaces';
+import { useTranslation } from 'react-i18next';
+import { TFunction } from 'i18next';
 
 const VirtuosoTableComponents: TableComponents<NamesForSale> = {
   Scroller: forwardRef<HTMLDivElement>((props, ref) => (
@@ -47,7 +49,8 @@ const VirtuosoTableComponents: TableComponents<NamesForSale> = {
 function fixedHeaderContent(
   sortBy: string,
   sortDirection: string,
-  setSort: (field: SortBy) => void
+  setSort: (field: SortBy) => void,
+  t: TFunction
 ) {
   const renderSortIcon = (field: string) => {
     if (sortBy !== field) return null;
@@ -70,12 +73,18 @@ function fixedHeaderContent(
     <TableRow sx={{ backgroundColor: 'background.paper' }}>
       <TableCell onClick={() => setSort('name')} sx={sortableCellSx}>
         <span style={{ display: 'flex', alignItems: 'center' }}>
-          Name {renderSortIcon('name')}
+          {t('core:tables.name', {
+            postProcess: 'capitalizeFirstChar',
+          })}
+          {renderSortIcon('name')}
         </span>
       </TableCell>
       <TableCell onClick={() => setSort('salePrice')} sx={sortableCellSx}>
         <span style={{ display: 'flex', alignItems: 'center' }}>
-          Sale Price {renderSortIcon('salePrice')}
+          {t('core:market.sale_price', {
+            postProcess: 'capitalizeFirstChar',
+          })}{' '}
+          {renderSortIcon('salePrice')}
         </span>
       </TableCell>
       <TableCell>Actions</TableCell>
@@ -95,17 +104,26 @@ function rowContent(
   setPendingTxs: SetPendingTxs,
   setNames: SetNames,
   setNamesForSale: SetNamesForSale,
-  isPrimaryNameForSale: boolean
+  isPrimaryNameForSale: boolean,
+  t: TFunction
 ) {
   const handleBuy = async (name: string) => {
-    const loadId = showLoading('Attempting to purchase name...please wait');
+    const loadId = showLoading(
+      t('core:market.responses.loading', {
+        postProcess: 'capitalizeFirstChar',
+      })
+    );
 
     try {
       const res = await qortalRequest({
         action: 'BUY_NAME',
         nameForSale: name,
       });
-      showSuccess('Purchased name');
+      showSuccess(
+        t('core:market.responses.success', {
+          postProcess: 'capitalizeFirstChar',
+        })
+      );
       setPendingTxs((prev) => {
         return {
           ...prev, // preserve existing categories
@@ -135,7 +153,11 @@ function rowContent(
         showError(error?.message);
         return;
       }
-      showError('Unable to purchase name');
+      showError(
+        t('core:market.responses.error', {
+          postProcess: 'capitalizeFirstChar',
+        })
+      );
     } finally {
       dismissToast(loadId);
     }
@@ -152,7 +174,9 @@ function rowContent(
           size="small"
           onClick={() => handleBuy(row.name)}
         >
-          Buy
+          {t('core:actions.buy', {
+            postProcess: 'capitalizeFirstChar',
+          })}
         </Button>
       </TableCell>
     </>
@@ -177,7 +201,7 @@ export const ForSaleTable = ({
   const setNames = useSetAtom(namesAtom);
   const setNamesForSale = useSetAtom(forSaleAtom);
   const setPendingTxs = useSetAtom(pendingTxsAtom);
-
+  const { t } = useTranslation();
   return (
     <Paper
       sx={{
@@ -189,7 +213,7 @@ export const ForSaleTable = ({
         data={namesForSale}
         components={VirtuosoTableComponents}
         fixedHeaderContent={() =>
-          fixedHeaderContent(sortBy, sortDirection, handleSort)
+          fixedHeaderContent(sortBy, sortDirection, handleSort, t)
         }
         itemContent={(index, row: NamesForSale) =>
           rowContent(
@@ -198,7 +222,8 @@ export const ForSaleTable = ({
             setPendingTxs,
             setNames,
             setNamesForSale,
-            isPrimaryNameForSale
+            isPrimaryNameForSale,
+            t
           )
         }
       />

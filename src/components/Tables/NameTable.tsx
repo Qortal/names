@@ -58,6 +58,8 @@ import { usePendingTxs } from '../../hooks/useHandlePendingTxs';
 import { FetchPrimaryNameType, useFetchNames } from '../../hooks/useFetchNames';
 import { Availability } from '../../interfaces';
 import { SetStateAction } from 'jotai';
+import { useTranslation } from 'react-i18next';
+import { TFunction } from 'i18next';
 interface NameData {
   name: string;
   isSelling?: boolean;
@@ -84,15 +86,23 @@ const VirtuosoTableComponents: TableComponents<NameData> = {
   )),
 };
 
-function fixedHeaderContent() {
+function fixedHeaderContent(t: TFunction) {
   return (
     <TableRow
       sx={{
         backgroundColor: 'background.paper',
       }}
     >
-      <TableCell>Name</TableCell>
-      <TableCell>Actions</TableCell>
+      <TableCell>
+        {t('core:tables.name', {
+          postProcess: 'capitalizeFirstChar',
+        })}
+      </TableCell>
+      <TableCell>
+        {t('core:tables.actions', {
+          postProcess: 'capitalizeFirstChar',
+        })}
+      </TableCell>
     </TableRow>
   );
 }
@@ -111,7 +121,7 @@ const ManageAvatar = ({
   const { setHasAvatar, getHasAvatar } = usePendingTxs();
   const [refresh] = useAtom(refreshAtom); // just to subscribe
   const [hasAvatarState, setHasAvatarState] = useState<boolean | null>(null);
-
+  const { t } = useTranslation();
   const checkIfAvatarExists = useCallback(
     async (name: string) => {
       try {
@@ -160,9 +170,13 @@ const ManageAvatar = ({
       {hasAvatarState === null ? (
         <CircularProgress size={10} />
       ) : hasAvatarState ? (
-        'Change avatar'
+        t('core:actions.update_avatar', {
+          postProcess: 'capitalizeFirstChar',
+        })
       ) : (
-        'Set avatar'
+        t('core:actions.set_avatar', {
+          postProcess: 'capitalizeFirstChar',
+        })
       )}
     </Button>
   );
@@ -186,14 +200,23 @@ function rowContent(
   setPendingTxs: SetPendingTxs,
   setNames: SetNames,
   setNamesForSale: SetNamesForSale,
-  isNameCurrentlyDoingATx: boolean
+  isNameCurrentlyDoingATx: boolean,
+  t: TFunction
 ) {
   const handleUpdate = async (name: string) => {
     if (name === primaryName && numberOfNames > 1) {
-      showError('Cannot update primary name while having other names');
+      showError(
+        t('core:actions.set_avatar', {
+          postProcess: 'capitalizeFirstChar',
+        })
+      );
       return;
     }
-    const loadId = showLoading('Updating name...please wait');
+    const loadId = showLoading(
+      t('core:update_name.responses.loading', {
+        postProcess: 'capitalizeFirstChar',
+      })
+    );
 
     try {
       const response = await modalFunctionsUpdateName.show(undefined);
@@ -203,7 +226,11 @@ function rowContent(
         newName: response,
         oldName: name,
       });
-      showSuccess('Successfully updated name');
+      showSuccess(
+        t('core:update_name.responses.loading', {
+          postProcess: 'capitalizeFirstChar',
+        })
+      );
       setPendingTxs((prev) => {
         return {
           ...prev, // preserve existing categories
@@ -236,7 +263,11 @@ function rowContent(
         showError(error?.message);
         return;
       }
-      showError('Unable to update name');
+      showError(
+        t('core:update_name.responses.loading', {
+          postProcess: 'capitalizeFirstChar',
+        })
+      );
       console.log('error', error);
     } finally {
       dismissToast(loadId);
@@ -247,23 +278,39 @@ function rowContent(
 
   const handleSell = async (name: string) => {
     if (name === primaryName && numberOfNames > 1) {
-      showError('Cannot sell primary name while having other names');
+      showError(
+        t('core:sell_name.responses.error1', {
+          postProcess: 'capitalizeFirstChar',
+        })
+      );
       return;
     }
-    const loadId = showLoading('Placing name for sale...please wait');
+    const loadId = showLoading(
+      t('core:sell_name.responses.loading', {
+        postProcess: 'capitalizeFirstChar',
+      })
+    );
     try {
       if (name === primaryName) {
         await modalFunctions.show({ name });
       }
       const price = await modalFunctionsSellName.show(name);
       if (typeof price !== 'string' && typeof price !== 'number')
-        throw new Error('Invalid price');
+        throw new Error(
+          t('core:sell_name.responses.error3', {
+            postProcess: 'capitalizeFirstChar',
+          })
+        );
       const res = await qortalRequest({
         action: 'SELL_NAME',
         nameForSale: name,
         salePrice: +price,
       });
-      showSuccess('Placed name for sale');
+      showSuccess(
+        t('core:sell_name.responses.success', {
+          postProcess: 'capitalizeFirstChar',
+        })
+      );
       setPendingTxs((prev) => {
         return {
           ...prev, // preserve existing categories
@@ -293,7 +340,11 @@ function rowContent(
 
         return;
       }
-      showError('Unable to place name for sale');
+      showError(
+        t('core:sell_name.responses.error2', {
+          postProcess: 'capitalizeFirstChar',
+        })
+      );
       console.log('error', error);
     } finally {
       dismissToast(loadId);
@@ -301,7 +352,11 @@ function rowContent(
   };
 
   const handleCancel = async (name: string) => {
-    const loadId = showLoading('Removing name from market...please wait');
+    const loadId = showLoading(
+      t('core:cancel_name.responses.error2', {
+        postProcess: 'capitalizeFirstChar',
+      })
+    );
 
     try {
       const res = await qortalRequest({
@@ -321,18 +376,25 @@ function rowContent(
                   prev.filter((item) => item?.name !== res.name)
                 );
               },
-            }, // add or overwrite this transaction
+            },
           },
         };
       });
-      showSuccess('Removed name from market');
+      showSuccess(
+        t('core:cancel_name.responses.error2', {
+          postProcess: 'capitalizeFirstChar',
+        })
+      );
     } catch (error) {
       if (error instanceof Error) {
         showError(error?.message);
         return;
       }
-      showError('Unable to remove name from market');
-      console.log('error', error);
+      showError(
+        t('core:cancel_name.responses.error2', {
+          postProcess: 'capitalizeFirstChar',
+        })
+      );
     } finally {
       dismissToast(loadId);
     }
@@ -350,7 +412,9 @@ function rowContent(
         >
           {primaryName === row.name && (
             <Tooltip
-              title="This is your primary name ( identity )"
+              title={t('core:tooltips.primary_name', {
+                postProcess: 'capitalizeFirstChar',
+              })}
               placement="left"
               arrow
               sx={{ fontSize: '24' }}
@@ -379,7 +443,9 @@ function rowContent(
             }
             onClick={() => handleUpdate(row.name)}
           >
-            Update
+            {t('core:actions.update', {
+              postProcess: 'capitalizeFirstChar',
+            })}
           </Button>
           {!row.isSelling ? (
             <Button
@@ -392,7 +458,9 @@ function rowContent(
                 isNameCurrentlyDoingATx
               }
             >
-              Sell
+              {t('core:actions.sell', {
+                postProcess: 'capitalizeFirstChar',
+              })}
             </Button>
           ) : (
             <Button
@@ -401,7 +469,9 @@ function rowContent(
               onClick={() => handleCancel(row.name)}
               disabled={isNameCurrentlyDoingATx}
             >
-              Cancel Sell
+              {t('core:actions.cancel_sell', {
+                postProcess: 'capitalizeFirstChar',
+              })}
             </Button>
           )}
           <ManageAvatar
@@ -424,6 +494,7 @@ export const NameTable = ({ names, primaryName }: NameTableProps) => {
   const { auth } = useGlobal();
   const [namesForSale, setNamesForSale] = useAtom(forSaleAtom);
   const [pendingTxs] = useAtom(pendingTxsAtom);
+  const { t } = useTranslation(['core']);
 
   const modalFunctions = useModal<{ name: string }>();
   const modalFunctionsUpdateName = useModal();
@@ -453,7 +524,7 @@ export const NameTable = ({ names, primaryName }: NameTableProps) => {
       <TableVirtuoso
         data={namesToDisplay}
         components={VirtuosoTableComponents}
-        fixedHeaderContent={fixedHeaderContent}
+        fixedHeaderContent={() => fixedHeaderContent(t)}
         itemContent={(index, row) => {
           const isNameCurrentlyDoingATx = isNamePendingTx(
             row?.name,
@@ -473,7 +544,8 @@ export const NameTable = ({ names, primaryName }: NameTableProps) => {
             setPendingTxs,
             setNames,
             setNamesForSale,
-            isNameCurrentlyDoingATx
+            isNameCurrentlyDoingATx,
+            t
           );
         }}
       />
@@ -483,17 +555,22 @@ export const NameTable = ({ names, primaryName }: NameTableProps) => {
           aria-labelledby="alert-dialog-title"
           aria-describedby="alert-dialog-description"
         >
-          <DialogTitle id="alert-dialog-title">Warning</DialogTitle>
+          <DialogTitle id="alert-dialog-title">
+            {t('core:warnings.warning', {
+              postProcess: 'capitalizeFirstChar',
+            })}
+          </DialogTitle>
           <DialogContent>
             <DialogContentText id="alert-dialog-description">
-              Caution when selling your primary name
+              {t('core:warnings.primary_name_sell_caution', {
+                postProcess: 'capitalizeFirstChar',
+              })}
             </DialogContentText>
             <Spacer height="20px" />
             <DialogContentText id="alert-dialog-description2">
-              {modalFunctions?.data?.name} is your primary name. If you are an
-              admin of a private group, selling this name will remove your group
-              keys for the group. Make sure another admin re-encrypts the latest
-              keys before selling. Proceed with caution!
+              {t('core:warnings.primary_name_sell', {
+                name: modalFunctions?.data?.name,
+              })}
             </DialogContentText>
           </DialogContent>
           <DialogActions>
@@ -503,10 +580,14 @@ export const NameTable = ({ names, primaryName }: NameTableProps) => {
               onClick={() => modalFunctions.onOk(undefined)}
               autoFocus
             >
-              continue
+              {t('core:actions.continue', {
+                postProcess: 'capitalizeFirstChar',
+              })}
             </Button>
             <Button variant="contained" onClick={modalFunctions.onCancel}>
-              Cancel
+              {t('core:actions.cancel', {
+                postProcess: 'capitalizeFirstChar',
+              })}
             </Button>
           </DialogActions>
         </Dialog>
@@ -533,6 +614,7 @@ interface AvatarModalProps {
   modalFunctionsAvatar: ModalFunctionsAvatar;
 }
 const AvatarModal = ({ modalFunctionsAvatar }: AvatarModalProps) => {
+  const { t } = useTranslation();
   const { setHasAvatar } = usePendingTxs();
   const forceRefresh = useSetAtom(forceRefreshAtom);
 
@@ -540,10 +622,18 @@ const AvatarModal = ({ modalFunctionsAvatar }: AvatarModalProps) => {
   const [isLoadingPublish, setIsLoadingPublish] = useState(false);
 
   const publishAvatar = async () => {
-    const loadId = showLoading('Publishing avatar...please wait');
+    const loadId = showLoading(
+      t('core:avatar.responses.loading', {
+        postProcess: 'capitalizeFirstChar',
+      })
+    );
     try {
       if (!modalFunctionsAvatar?.data || !pickedAvatar?.base64)
-        throw new Error('Missing data');
+        throw new Error(
+          t('core:avatar.responses.error1', {
+            postProcess: 'capitalizeFirstChar',
+          })
+        );
       setIsLoadingPublish(true);
       await qortalRequest({
         action: 'PUBLISH_QDN_RESOURCE',
@@ -555,14 +645,22 @@ const AvatarModal = ({ modalFunctionsAvatar }: AvatarModalProps) => {
       setHasAvatar(modalFunctionsAvatar?.data?.name, true);
       forceRefresh();
 
-      showSuccess('Successfully published avatar');
+      showSuccess(
+        t('core:avatar.responses.success', {
+          postProcess: 'capitalizeFirstChar',
+        })
+      );
       modalFunctionsAvatar.onOk(undefined);
     } catch (error) {
       if (error instanceof Error) {
         showError(error?.message);
         return;
       }
-      showError('Unable to publish avatar');
+      showError(
+        t('core:avatar.responses.loading', {
+          postProcess: 'capitalizeFirstChar',
+        })
+      );
     } finally {
       dismissToast(loadId);
       setIsLoadingPublish(false);
@@ -575,7 +673,11 @@ const AvatarModal = ({ modalFunctionsAvatar }: AvatarModalProps) => {
       aria-labelledby="alert-dialog-title"
       aria-describedby="alert-dialog-description"
     >
-      <DialogTitle id="alert-dialog-title">Publish Avatar</DialogTitle>
+      <DialogTitle id="alert-dialog-title">
+        {t('core:avatar.title', {
+          postProcess: 'capitalizeFirstChar',
+        })}
+      </DialogTitle>
       <DialogContent
         sx={{
           width: '300px',
@@ -632,7 +734,11 @@ const AvatarModal = ({ modalFunctionsAvatar }: AvatarModalProps) => {
             (500 KB max. for GIFS){' '}
           </Typography>
           <ImagePicker onPick={(file) => setPickedAvatar(file)} mode="single">
-            <Button variant="contained">Choose Image</Button>
+            <Button variant="contained">
+              {t('core:actions.choose_image', {
+                postProcess: 'capitalizeFirstChar',
+              })}
+            </Button>
           </ImagePicker>
         </Box>
       </DialogContent>
@@ -643,10 +749,14 @@ const AvatarModal = ({ modalFunctionsAvatar }: AvatarModalProps) => {
           onClick={publishAvatar}
           autoFocus
         >
-          publish
+          {t('core:actions.publish', {
+            postProcess: 'capitalizeFirstChar',
+          })}
         </Button>
         <Button variant="contained" onClick={modalFunctionsAvatar.onCancel}>
-          Cancel
+          {t('core:actions.cancel', {
+            postProcess: 'capitalizeFirstChar',
+          })}
         </Button>
       </DialogActions>
     </Dialog>
@@ -665,6 +775,7 @@ const UpdateNameModal = ({
   const [isNameAvailable, setIsNameAvailable] = useState<Availability>(
     Availability.NULL
   );
+  const { t } = useTranslation();
   const [nameFee, setNameFee] = useState<null | number>(null);
   const balance = useGlobal().auth.balance;
 
@@ -723,16 +834,22 @@ const UpdateNameModal = ({
     >
       {step === 1 && (
         <>
-          <DialogTitle id="alert-dialog-title">Warning</DialogTitle>
+          <DialogTitle id="alert-dialog-title">
+            {t('core:warnings.warning', {
+              postProcess: 'capitalizeFirstChar',
+            })}
+          </DialogTitle>
           <DialogContent>
             <DialogContentText id="alert-dialog-description">
-              Caution when updating your name
+              {t('core:update_name.title', {
+                postProcess: 'capitalizeFirstChar',
+              })}
             </DialogContentText>
             <Spacer height="20px" />
             <DialogContentText id="alert-dialog-description2">
-              If you update your Name, you will forfeit the resources associated
-              with the original Name. In other words, you will lose ownership of
-              the content under the original Name on QDN. Proceed with caution!
+              {t('core:warnings.update_name1', {
+                postProcess: 'capitalizeFirstChar',
+              })}
             </DialogContentText>
           </DialogContent>
           <DialogActions>
@@ -742,23 +859,33 @@ const UpdateNameModal = ({
               onClick={() => setStep(2)}
               autoFocus
             >
-              continue
+              {t('core:actions.continue', {
+                postProcess: 'capitalizeFirstChar',
+              })}
             </Button>
             <Button
               variant="contained"
               onClick={modalFunctionsUpdateName.onCancel}
             >
-              Cancel
+              {t('core:actions.cancel', {
+                postProcess: 'capitalizeFirstChar',
+              })}
             </Button>
           </DialogActions>
         </>
       )}
       {step === 2 && (
         <>
-          <DialogTitle id="alert-dialog-title">Warning</DialogTitle>
+          <DialogTitle id="alert-dialog-title">
+            {t('core:warnings.warning', {
+              postProcess: 'capitalizeFirstChar',
+            })}
+          </DialogTitle>
           <DialogContent>
             <DialogContentText id="alert-dialog-description">
-              Choose new name
+              {t('core:update_name.choose_name', {
+                postProcess: 'capitalizeFirstChar',
+              })}
             </DialogContentText>
             <Spacer height="20px" />
             <TextField
@@ -766,7 +893,9 @@ const UpdateNameModal = ({
               autoFocus
               onChange={(e) => setNewName(e.target.value)}
               value={newName}
-              placeholder="Choose a name"
+              placeholder={t('core:new_name.choose_name', {
+                postProcess: 'capitalizeFirstChar',
+              })}
             />
             {(!balance || (nameFee && balance && balance < nameFee)) && (
               <>
@@ -784,8 +913,11 @@ const UpdateNameModal = ({
                     }}
                   />
                   <Typography>
-                    Your balance is {balance ?? 0} QORT. A name registration
-                    requires a {nameFee} QORT fee
+                    {t('core:update_name.balanceInfo', {
+                      postProcess: 'capitalizeFirstChar',
+                      nameFee: nameFee,
+                      balance: balance ?? 0,
+                    })}
                   </Typography>
                 </Box>
                 <Spacer height="10px" />
@@ -805,7 +937,12 @@ const UpdateNameModal = ({
                     color: theme.palette.text.primary,
                   }}
                 />
-                <Typography>{newName} is available</Typography>
+                <Typography>
+                  {' '}
+                  {t('core:update_name.name_available', {
+                    name: newName,
+                  })}
+                </Typography>
               </Box>
             )}
             {isNameAvailable === Availability.NOT_AVAILABLE && (
@@ -821,7 +958,11 @@ const UpdateNameModal = ({
                     color: theme.palette.text.primary,
                   }}
                 />
-                <Typography>{newName} is unavailable</Typography>
+                <Typography>
+                  {t('core:update_name.name_unavailable', {
+                    name: newName,
+                  })}
+                </Typography>
               </Box>
             )}
             {isNameAvailable === Availability.LOADING && (
@@ -833,7 +974,11 @@ const UpdateNameModal = ({
                 }}
               >
                 <BarSpinner width="16px" color={theme.palette.text.primary} />
-                <Typography>Checking if name already existis</Typography>
+                <Typography>
+                  {t('core:new_name.checking', {
+                    postProcess: 'capitalizeFirstChar',
+                  })}
+                </Typography>
               </Box>
             )}
           </DialogContent>
@@ -850,14 +995,18 @@ const UpdateNameModal = ({
               onClick={() => modalFunctionsUpdateName.onOk(newName.trim())}
               autoFocus
             >
-              continue
+              {t('core:actions.continue', {
+                postProcess: 'capitalizeFirstChar',
+              })}
             </Button>
             <Button
               color="secondary"
               variant="contained"
               onClick={modalFunctionsUpdateName.onCancel}
             >
-              Cancel
+              {t('core:actions.cancel', {
+                postProcess: 'capitalizeFirstChar',
+              })}
             </Button>
           </DialogActions>
         </>
@@ -871,6 +1020,7 @@ interface SellNameModalProps {
 }
 
 const SellNameModal = ({ modalFunctionsSellName }: SellNameModalProps) => {
+  const { t } = useTranslation();
   const [price, setPrice] = useState(0);
 
   return (
@@ -879,10 +1029,16 @@ const SellNameModal = ({ modalFunctionsSellName }: SellNameModalProps) => {
       aria-labelledby="alert-dialog-title"
       aria-describedby="alert-dialog-description"
     >
-      <DialogTitle id="alert-dialog-title">Selling name</DialogTitle>
+      <DialogTitle id="alert-dialog-title">
+        {t('core:sell_name.title', {
+          postProcess: 'capitalizeFirstChar',
+        })}
+      </DialogTitle>
       <DialogContent>
         <DialogContentText id="alert-dialog-description">
-          Choose selling price
+          {t('core:sell_name.choose_price', {
+            postProcess: 'capitalizeFirstChar',
+          })}
         </DialogContentText>
         <Spacer height="20px" />
         <TextField
@@ -891,7 +1047,9 @@ const SellNameModal = ({ modalFunctionsSellName }: SellNameModalProps) => {
           onChange={(e) => setPrice(+e.target.value)}
           value={price}
           type="number"
-          placeholder="Choose a name"
+          placeholder={t('core:new_name.choose_price', {
+            postProcess: 'capitalizeFirstChar',
+          })}
         />
       </DialogContent>
       <DialogActions>
@@ -902,14 +1060,18 @@ const SellNameModal = ({ modalFunctionsSellName }: SellNameModalProps) => {
           onClick={() => modalFunctionsSellName.onOk(price)}
           autoFocus
         >
-          continue
+          {t('core:actions.continue', {
+            postProcess: 'capitalizeFirstChar',
+          })}
         </Button>
         <Button
           color="secondary"
           variant="contained"
           onClick={modalFunctionsSellName.onCancel}
         >
-          Cancel
+          {t('core:actions.cancel', {
+            postProcess: 'capitalizeFirstChar',
+          })}
         </Button>
       </DialogActions>
     </Dialog>

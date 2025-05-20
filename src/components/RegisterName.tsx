@@ -82,7 +82,7 @@ const RegisterName = () => {
     if (!address) return;
     const loadId = showLoading(
       t('core:new_name.responses.loading', {
-        postProcess: 'capitalize',
+        postProcess: 'capitalizeFirstChar',
       })
     );
     try {
@@ -114,7 +114,7 @@ const RegisterName = () => {
       });
       showSuccess(
         t('core:new_name.responses.success', {
-          postProcess: 'capitalize',
+          postProcess: 'capitalizeFirstChar',
         })
       );
       setNameValue('');
@@ -125,7 +125,7 @@ const RegisterName = () => {
       } else {
         showError(
           t('core:new_name.responses.error', {
-            postProcess: 'capitalize',
+            postProcess: 'capitalizeFirstChar',
           })
         );
       }
@@ -191,7 +191,7 @@ const RegisterName = () => {
         }}
       >
         {t('core:actions.new_name', {
-          postProcess: 'capitalize',
+          postProcess: 'capitalizeFirstChar',
         })}
       </Button>
       <Dialog
@@ -201,7 +201,7 @@ const RegisterName = () => {
       >
         <DialogTitle id="alert-dialog-title">
           {t('core:actions.register_name', {
-            postProcess: 'capitalize',
+            postProcess: 'capitalizeFirstChar',
           })}
         </DialogTitle>
         <DialogContent>
@@ -225,7 +225,7 @@ const RegisterName = () => {
               onChange={(e) => setNameValue(e.target.value)}
               value={nameValue}
               placeholder={t('core:new_name.choose_name', {
-                postProcess: 'capitalize',
+                postProcess: 'capitalizeFirstChar',
               })}
             />
             {(!balance || (nameFee && balance && balance < nameFee)) && (
@@ -247,7 +247,7 @@ const RegisterName = () => {
                     {t('balance_message', {
                       balance: balance ?? 0,
                       nameFee,
-                      postProcess: 'capitalize',
+                      postProcess: 'capitalizeFirstChar',
                     })}
                   </Typography>
                 </Box>
@@ -302,7 +302,7 @@ const RegisterName = () => {
                 <BarSpinner width="16px" color={theme.palette.text.primary} />
                 <Typography>
                   {t('core:new_name.checking_name', {
-                    postProcess: 'capitalize',
+                    postProcess: 'capitalizeFirstChar',
                   })}
                 </Typography>
               </Box>
@@ -319,7 +319,7 @@ const RegisterName = () => {
             }}
           >
             {t('core:actions.close', {
-              postProcess: 'capitalize',
+              postProcess: 'capitalizeFirstChar',
             })}
           </Button>
           <Button
@@ -335,7 +335,7 @@ const RegisterName = () => {
             autoFocus
           >
             {t('core:actions.register_name', {
-              postProcess: 'capitalize',
+              postProcess: 'capitalizeFirstChar',
             })}
           </Button>
         </DialogActions>

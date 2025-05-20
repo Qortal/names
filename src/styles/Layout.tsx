@@ -15,12 +15,12 @@ const Layout = () => {
 
   const navItems = [
     {
-      label: t('core:header.my_names', { postProcess: 'capitalize' }),
+      label: t('core:header.my_names', { postProcess: 'capitalizeFirstChar' }),
       path: '/',
       Icon: FormatListBulletedIcon,
     },
     {
-      label: t('core:header.market', { postProcess: 'capitalize' }),
+      label: t('core:header.market', { postProcess: 'capitalizeFirstChar' }),
       path: '/market',
       Icon: StorefrontIcon,
     },

@@ -110,7 +110,7 @@ export const Market = () => {
       >
         <TextField
           placeholder={t('core:inputs.filter_names', {
-            postProcess: 'capitalize',
+            postProcess: 'capitalizeFirstChar',
           })}
           value={value}
           onChange={(e) => setValue(e.target.value)}
