@@ -26,6 +26,7 @@ import { TableVirtuoso, TableComponents } from 'react-virtuoso';
 import {
   forceRefreshAtom,
   forSaleAtom,
+  isNamePendingTx,
   Names,
   namesAtom,
   NamesForSale,
@@ -99,9 +100,14 @@ function fixedHeaderContent() {
 interface ManageAvatarProps {
   name: string;
   modalFunctionsAvatar: ModalFunctionsAvatar;
+  isNameCurrentlyDoingATx?: boolean;
 }
 
-const ManageAvatar = ({ name, modalFunctionsAvatar }: ManageAvatarProps) => {
+const ManageAvatar = ({
+  name,
+  modalFunctionsAvatar,
+  isNameCurrentlyDoingATx,
+}: ManageAvatarProps) => {
   const { setHasAvatar, getHasAvatar } = usePendingTxs();
   const [refresh] = useAtom(refreshAtom); // just to subscribe
   const [hasAvatarState, setHasAvatarState] = useState<boolean | null>(null);
@@ -146,7 +152,7 @@ const ManageAvatar = ({ name, modalFunctionsAvatar }: ManageAvatarProps) => {
     <Button
       variant="outlined"
       size="small"
-      disabled={hasAvatarState === null}
+      disabled={hasAvatarState === null || isNameCurrentlyDoingATx}
       onClick={() =>
         modalFunctionsAvatar.show({ name, hasAvatar: Boolean(hasAvatarState) })
       }
@@ -179,7 +185,8 @@ function rowContent(
   modalFunctionsSellName: ReturnType<typeof useModal>,
   setPendingTxs: SetPendingTxs,
   setNames: SetNames,
-  setNamesForSale: SetNamesForSale
+  setNamesForSale: SetNamesForSale,
+  isNameCurrentlyDoingATx: boolean
 ) {
   const handleUpdate = async (name: string) => {
     if (name === primaryName && numberOfNames > 1) {
@@ -366,6 +373,10 @@ function rowContent(
             color={primaryName === row.name ? 'warning' : 'primary'}
             variant="outlined"
             size="small"
+            disabled={
+              (row?.name === primaryName && numberOfNames > 1) ||
+              isNameCurrentlyDoingATx
+            }
             onClick={() => handleUpdate(row.name)}
           >
             Update
@@ -376,6 +387,10 @@ function rowContent(
               size="small"
               variant="outlined"
               onClick={() => handleSell(row.name)}
+              disabled={
+                (row?.name === primaryName && numberOfNames > 1) ||
+                isNameCurrentlyDoingATx
+              }
             >
               Sell
             </Button>
@@ -384,6 +399,7 @@ function rowContent(
               color="error"
               size="small"
               onClick={() => handleCancel(row.name)}
+              disabled={isNameCurrentlyDoingATx}
             >
               Cancel Sell
             </Button>
@@ -391,6 +407,7 @@ function rowContent(
           <ManageAvatar
             name={row.name}
             modalFunctionsAvatar={modalFunctionsAvatar}
+            isNameCurrentlyDoingATx={isNameCurrentlyDoingATx}
           />
         </Box>
       </TableCell>
@@ -406,6 +423,8 @@ export const NameTable = ({ names, primaryName }: NameTableProps) => {
   const setNames = useSetAtom(namesAtom);
   const { auth } = useGlobal();
   const [namesForSale, setNamesForSale] = useAtom(forSaleAtom);
+  const [pendingTxs] = useAtom(pendingTxsAtom);
+
   const modalFunctions = useModal<{ name: string }>();
   const modalFunctionsUpdateName = useModal();
   const modalFunctionsAvatar = useModal<{ name: string; hasAvatar: boolean }>();
@@ -435,8 +454,12 @@ export const NameTable = ({ names, primaryName }: NameTableProps) => {
         data={namesToDisplay}
         components={VirtuosoTableComponents}
         fixedHeaderContent={fixedHeaderContent}
-        itemContent={(index, row) =>
-          rowContent(
+        itemContent={(index, row) => {
+          const isNameCurrentlyDoingATx = isNamePendingTx(
+            row?.name,
+            pendingTxs
+          );
+          return rowContent(
             index,
             row,
             primaryName,
@@ -449,9 +472,10 @@ export const NameTable = ({ names, primaryName }: NameTableProps) => {
             modalFunctionsSellName,
             setPendingTxs,
             setNames,
-            setNamesForSale
-          )
-        }
+            setNamesForSale,
+            isNameCurrentlyDoingATx
+          );
+        }}
       />
       {modalFunctions?.isShow && (
         <Dialog

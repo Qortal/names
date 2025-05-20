@@ -18,12 +18,17 @@ import {
   Spacer,
   useGlobal,
 } from 'qapp-core';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { BarSpinner } from '../common/Spinners/BarSpinner/BarSpinner';
 import CheckIcon from '@mui/icons-material/Check';
 import ErrorIcon from '@mui/icons-material/Error';
-import { useSetAtom } from 'jotai';
-import { namesAtom, pendingTxsAtom } from '../state/global/names';
+import { useAtom, useSetAtom } from 'jotai';
+import {
+  forSaleAtom,
+  namesAtom,
+  pendingTxsAtom,
+  primaryNameAtom,
+} from '../state/global/names';
 import { Availability } from '../interfaces';
 
 const Label = styled('label')`
@@ -38,7 +43,9 @@ const RegisterName = () => {
   const [isOpen, setIsOpen] = useState(false);
   const balance = useGlobal().auth.balance;
   const setNames = useSetAtom(namesAtom);
-
+  const [namesForSale] = useAtom(forSaleAtom);
+  const [primaryName] = useAtom(primaryNameAtom);
+  const [pendingTxs] = useAtom(pendingTxsAtom);
   const address = useGlobal().auth.address;
   const [nameValue, setNameValue] = useState('');
   const [isNameAvailable, setIsNameAvailable] = useState<Availability>(
@@ -49,6 +56,25 @@ const RegisterName = () => {
   const [isLoadingRegisterName, setIsLoadingRegisterName] = useState(false);
   const theme = useTheme();
   const [nameFee, setNameFee] = useState<number | null>(null);
+  const isPrimaryNameForSale = useMemo(() => {
+    if (!primaryName) return false;
+    const findPendingNameSellTx = pendingTxs?.['SELL_NAME'];
+    let isOnSale = false;
+    if (findPendingNameSellTx) {
+      Object.values(findPendingNameSellTx).forEach((value) => {
+        if (value?.name === primaryName) {
+          isOnSale = true;
+          return;
+        }
+      });
+    }
+    if (isOnSale) return true;
+    const findNameIndex = namesForSale?.findIndex(
+      (item) => item?.name === primaryName
+    );
+    if (findNameIndex === -1) return false;
+    return true;
+  }, [namesForSale, primaryName, pendingTxs]);
   const registerNameFunc = async () => {
     if (!address) return;
     const loadId = showLoading('Registering name...please wait');
@@ -142,7 +168,7 @@ const RegisterName = () => {
   return (
     <>
       <Button
-        // disabled={!nameValue?.trim()}
+        disabled={isPrimaryNameForSale}
         onClick={() => setIsOpen(true)}
         variant="outlined"
         sx={{

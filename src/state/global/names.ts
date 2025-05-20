@@ -1,5 +1,23 @@
 import { atom } from 'jotai';
 
+export const isNamePendingTx = (
+  name: string,
+  pendingTxs: PendingTxsState
+): boolean => {
+  for (const category of Object.keys(pendingTxs) as TransactionCategory[]) {
+    const txMap = pendingTxs[category];
+    if (!txMap) continue;
+
+    for (const tx of Object.values(txMap)) {
+      if (tx.name === name) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+};
+
 interface AdditionalFields {
   callback: () => void;
   status: 'PENDING';
@@ -35,7 +53,7 @@ interface UpdateNameTransaction {
   newData: string;
 }
 
-interface SellNameTransaction {
+export interface SellNameTransaction {
   type: 'SELL_NAME';
   timestamp: number;
   reference: string;

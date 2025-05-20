@@ -94,7 +94,8 @@ function rowContent(
   row: NamesForSale,
   setPendingTxs: SetPendingTxs,
   setNames: SetNames,
-  setNamesForSale: SetNamesForSale
+  setNamesForSale: SetNamesForSale,
+  isPrimaryNameForSale: boolean
 ) {
   const handleBuy = async (name: string) => {
     const loadId = showLoading('Attempting to purchase name...please wait');
@@ -146,6 +147,7 @@ function rowContent(
       <TableCell>{row.salePrice}</TableCell>
       <TableCell>
         <Button
+          disabled={isPrimaryNameForSale}
           variant="contained"
           size="small"
           onClick={() => handleBuy(row.name)}
@@ -162,6 +164,7 @@ interface ForSaleTable {
   sortDirection: SortDirection;
   sortBy: SortBy;
   handleSort: (sortBy: SortBy) => void;
+  isPrimaryNameForSale: boolean;
 }
 
 export const ForSaleTable = ({
@@ -169,6 +172,7 @@ export const ForSaleTable = ({
   sortDirection,
   sortBy,
   handleSort,
+  isPrimaryNameForSale,
 }: ForSaleTable) => {
   const setNames = useSetAtom(namesAtom);
   const setNamesForSale = useSetAtom(forSaleAtom);
@@ -188,7 +192,14 @@ export const ForSaleTable = ({
           fixedHeaderContent(sortBy, sortDirection, handleSort)
         }
         itemContent={(index, row: NamesForSale) =>
-          rowContent(index, row, setPendingTxs, setNames, setNamesForSale)
+          rowContent(
+            index,
+            row,
+            setPendingTxs,
+            setNames,
+            setNamesForSale,
+            isPrimaryNameForSale
+          )
         }
       />
     </Paper>

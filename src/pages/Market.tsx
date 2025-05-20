@@ -1,12 +1,19 @@
 import { Box, TextField } from '@mui/material';
 import { ForSaleTable } from '../components/Tables/ForSaleTable';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { forSaleAtom } from '../state/global/names';
+import {
+  forSaleAtom,
+  pendingTxsAtom,
+  primaryNameAtom,
+} from '../state/global/names';
 import { useAtom } from 'jotai';
 import { SortBy, SortDirection } from '../interfaces';
 
 export const Market = () => {
   const [namesForSale] = useAtom(forSaleAtom);
+  const [pendingTxs] = useAtom(pendingTxsAtom);
+  const [primaryName] = useAtom(primaryNameAtom);
+
   const [sortBy, setSortBy] = useState<SortBy>('name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [filterValue, setFilterValue] = useState('');
@@ -40,6 +47,26 @@ export const Market = () => {
       }
     });
   }, [namesForSale, sortBy, sortDirection, filterValue]);
+
+  const isPrimaryNameForSale = useMemo(() => {
+    if (!primaryName) return false;
+    const findPendingNameSellTx = pendingTxs?.['SELL_NAME'];
+    let isOnSale = false;
+    if (findPendingNameSellTx) {
+      Object.values(findPendingNameSellTx).forEach((value) => {
+        if (value?.name === primaryName) {
+          isOnSale = true;
+          return;
+        }
+      });
+    }
+    if (isOnSale) return true;
+    const findNameIndex = namesForSale?.findIndex(
+      (item) => item?.name === primaryName
+    );
+    if (findNameIndex === -1) return false;
+    return true;
+  }, [namesForSale, primaryName, pendingTxs]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -90,6 +117,7 @@ export const Market = () => {
         sortBy={sortBy}
         sortDirection={sortDirection}
         handleSort={handleSort}
+        isPrimaryNameForSale={isPrimaryNameForSale}
       />
     </div>
   );
