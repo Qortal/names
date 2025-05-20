@@ -1,20 +1,20 @@
 // PendingTxsProvider.tsx
 import { ReactNode, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useAtom } from 'jotai';
-import { pendingTxsAtom } from '../global/names';
+import { pendingTxsAtom, TransactionCategory } from '../global/names';
 import { PendingTxsContext } from '../../hooks/useHandlePendingTxs';
 
 const TX_CHECK_INTERVAL = 80000;
 
 export const PendingTxsProvider = ({ children }: { children: ReactNode }) => {
   const [pendingTxs, setPendingTxs] = useAtom(pendingTxsAtom);
-  const hasAvatarRef = useRef({});
+  const hasAvatarRef = useRef<Record<string, boolean>>({});
   useEffect(() => {
     const interval = setInterval(() => {
       const categories = Object.keys(pendingTxs);
 
       categories.forEach((category) => {
-        const txs = pendingTxs[category];
+        const txs = pendingTxs[category as TransactionCategory];
         if (!txs) return;
 
         Object.entries(txs).forEach(async ([signature, tx]) => {
@@ -27,7 +27,9 @@ export const PendingTxsProvider = ({ children }: { children: ReactNode }) => {
 
             if (data?.blockHeight) {
               setPendingTxs((prev) => {
-                const newCategory = { ...prev[category] };
+                const newCategory = {
+                  ...prev[category as TransactionCategory],
+                };
                 delete newCategory[signature];
 
                 const updated = {
@@ -36,7 +38,7 @@ export const PendingTxsProvider = ({ children }: { children: ReactNode }) => {
                 };
 
                 if (Object.keys(newCategory).length === 0) {
-                  delete updated[category];
+                  delete updated[category as TransactionCategory];
                 }
 
                 return updated;
@@ -57,12 +59,12 @@ export const PendingTxsProvider = ({ children }: { children: ReactNode }) => {
   const clearPendingTxs = useCallback(
     (category: string, fieldName: string, values: string[]) => {
       setPendingTxs((prev) => {
-        const categoryTxs = prev[category];
+        const categoryTxs = prev[category as TransactionCategory];
         if (!categoryTxs) return prev;
 
         const filtered = Object.fromEntries(
           Object.entries(categoryTxs).filter(
-            ([_, tx]) => !values.includes(tx[fieldName])
+            ([_, tx]) => !values.includes(tx[fieldName as 'name'])
           )
         );
 
@@ -72,7 +74,7 @@ export const PendingTxsProvider = ({ children }: { children: ReactNode }) => {
         };
 
         if (Object.keys(filtered).length === 0) {
-          delete updated[category];
+          delete updated[category as TransactionCategory];
         }
 
         return updated;

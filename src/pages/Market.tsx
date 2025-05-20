@@ -3,11 +3,12 @@ import { ForSaleTable } from '../components/Tables/ForSaleTable';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { forSaleAtom } from '../state/global/names';
 import { useAtom } from 'jotai';
+import { SortBy, SortDirection } from '../interfaces';
 
 export const Market = () => {
   const [namesForSale] = useAtom(forSaleAtom);
-  const [sortBy, setSortBy] = useState<'name' | 'salePrice'>('name');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [sortBy, setSortBy] = useState<SortBy>('name');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [filterValue, setFilterValue] = useState('');
   const [value, setValue] = useState('');
   const namesForSaleFiltered = useMemo(() => {
@@ -52,7 +53,7 @@ export const Market = () => {
   }, [value]);
 
   const handleSort = useCallback(
-    (field: 'name' | 'salePrice') => {
+    (field: SortBy) => {
       if (sortBy === field) {
         // Toggle direction
         setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));

@@ -1,16 +1,113 @@
 import { atom } from 'jotai';
 
-type TransactionCategory = 'REGISTER_NAME';
+interface AdditionalFields {
+  callback: () => void;
+  status: 'PENDING';
+}
+interface RegisterNameTransaction {
+  type: 'REGISTER_NAME';
+  timestamp: number;
+  reference: string;
+  fee: string;
+  signature: string;
+  txGroupId: number;
+  blockHeight: number;
+  approvalStatus: 'NOT_REQUIRED';
+  creatorAddress: string;
+  registrantPublicKey: string;
+  name: string;
+  data: string;
+}
+
+interface UpdateNameTransaction {
+  type: 'UPDATE_NAME';
+  timestamp: number;
+  reference: string;
+  fee: string;
+  signature: string;
+  txGroupId: number;
+  blockHeight: number;
+  approvalStatus: 'NOT_REQUIRED';
+  creatorAddress: string;
+  ownerPublicKey: string;
+  name: string;
+  newName: string;
+  newData: string;
+}
+
+interface SellNameTransaction {
+  type: 'SELL_NAME';
+  timestamp: number;
+  reference: string;
+  fee: string;
+  signature: string;
+  txGroupId: number;
+  blockHeight: number;
+  approvalStatus: 'NOT_REQUIRED';
+  creatorAddress: string;
+  ownerPublicKey: string;
+  name: string;
+  amount: string;
+}
+
+interface CancelSellNameTransaction {
+  type: 'CANCEL_SELL_NAME';
+  timestamp: number;
+  reference: string;
+  fee: string;
+  signature: string;
+  txGroupId: number;
+  blockHeight: number;
+  approvalStatus: 'NOT_REQUIRED';
+  creatorAddress: string;
+  ownerPublicKey: string;
+  name: string;
+}
+
+interface BuyNameTransaction {
+  type: 'BUY_NAME';
+  timestamp: number;
+  reference: string;
+  fee: string;
+  signature: string;
+  txGroupId: number;
+  blockHeight: number;
+  approvalStatus: 'NOT_REQUIRED';
+  creatorAddress: string;
+  buyerPublicKey: string;
+  name: string;
+  amount: string;
+  seller: string;
+}
+
+export type NameTransactions =
+  | (RegisterNameTransaction & AdditionalFields)
+  | (UpdateNameTransaction & AdditionalFields)
+  | (SellNameTransaction & AdditionalFields)
+  | (CancelSellNameTransaction & AdditionalFields)
+  | (BuyNameTransaction & AdditionalFields);
 
 type TransactionMap = {
-  [signature: string]: any; // replace `any` with your transaction type if known
+  [signature: string]: NameTransactions;
 };
 
-type PendingTxsState = {
+export type TransactionCategory = NameTransactions['type'];
+
+export type PendingTxsState = {
   [key in TransactionCategory]?: TransactionMap;
 };
-export const namesAtom = atom([]);
-export const forSaleAtom = atom([]);
+
+export interface Names {
+  name: string;
+  owner: string;
+}
+export interface NamesForSale {
+  name: string;
+  salePrice: number;
+}
+export const namesAtom = atom<Names[]>([]);
+export const primaryNameAtom = atom('');
+export const forSaleAtom = atom<NamesForSale[]>([]);
 export const pendingTxsAtom = atom<PendingTxsState>({});
 
 export const sortedPendingTxsByCategoryAtom = (category: string) =>

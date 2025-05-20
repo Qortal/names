@@ -8,30 +8,24 @@ import {
   Paper,
   Button,
 } from '@mui/material';
-import { useAtom, useSetAtom } from 'jotai';
-import { forwardRef, useMemo } from 'react';
+import { useSetAtom } from 'jotai';
+import { forwardRef } from 'react';
 import { TableVirtuoso, TableComponents } from 'react-virtuoso';
 import {
   forSaleAtom,
+  Names,
   namesAtom,
+  NamesForSale,
   pendingTxsAtom,
+  PendingTxsState,
 } from '../../state/global/names';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
-import {
-  dismissToast,
-  showError,
-  showLoading,
-  showSuccess,
-  useGlobal,
-} from 'qapp-core';
+import { dismissToast, showError, showLoading, showSuccess } from 'qapp-core';
+import { SetStateAction } from 'jotai';
+import { SortBy, SortDirection } from '../../interfaces';
 
-interface NameData {
-  name: string;
-  isSelling?: boolean;
-}
-
-const VirtuosoTableComponents: TableComponents<NameData> = {
+const VirtuosoTableComponents: TableComponents<NamesForSale> = {
   Scroller: forwardRef<HTMLDivElement>((props, ref) => (
     <TableContainer component={Paper} {...props} ref={ref} />
   )),
@@ -53,7 +47,7 @@ const VirtuosoTableComponents: TableComponents<NameData> = {
 function fixedHeaderContent(
   sortBy: string,
   sortDirection: string,
-  setSort: (field: 'name' | 'salePrice') => void
+  setSort: (field: SortBy) => void
 ) {
   const renderSortIcon = (field: string) => {
     if (sortBy !== field) return null;
@@ -89,13 +83,18 @@ function fixedHeaderContent(
   );
 }
 
+type SetPendingTxs = (update: SetStateAction<PendingTxsState>) => void;
+
+type SetNames = (update: SetStateAction<Names[]>) => void;
+
+type SetNamesForSale = (update: SetStateAction<NamesForSale[]>) => void;
+
 function rowContent(
   _index: number,
-  row: NameData,
-  setPendingTxs,
-  setNames,
-  setNamesForSale,
-  address
+  row: NamesForSale,
+  setPendingTxs: SetPendingTxs,
+  setNames: SetNames,
+  setNamesForSale: SetNamesForSale
 ) {
   const handleBuy = async (name: string) => {
     const loadId = showLoading('Attempting to purchase name...please wait');
@@ -131,9 +130,11 @@ function rowContent(
         };
       });
     } catch (error) {
-      showError(error?.message || 'Unable to purchase name');
-
-      console.log('error', error);
+      if (error instanceof Error) {
+        showError(error?.message);
+        return;
+      }
+      showError('Unable to purchase name');
     } finally {
       dismissToast(loadId);
     }
@@ -156,13 +157,19 @@ function rowContent(
   );
 }
 
+interface ForSaleTable {
+  namesForSale: NamesForSale[];
+  sortDirection: SortDirection;
+  sortBy: SortBy;
+  handleSort: (sortBy: SortBy) => void;
+}
+
 export const ForSaleTable = ({
   namesForSale,
   sortDirection,
   sortBy,
   handleSort,
-}) => {
-  const address = useGlobal().auth.address;
+}: ForSaleTable) => {
   const setNames = useSetAtom(namesAtom);
   const setNamesForSale = useSetAtom(forSaleAtom);
   const setPendingTxs = useSetAtom(pendingTxsAtom);
@@ -180,15 +187,8 @@ export const ForSaleTable = ({
         fixedHeaderContent={() =>
           fixedHeaderContent(sortBy, sortDirection, handleSort)
         }
-        itemContent={(index, row) =>
-          rowContent(
-            index,
-            row,
-            setPendingTxs,
-            setNames,
-            setNamesForSale,
-            address
-          )
+        itemContent={(index, row: NamesForSale) =>
+          rowContent(index, row, setPendingTxs, setNames, setNamesForSale)
         }
       />
     </Paper>

@@ -24,12 +24,7 @@ import CheckIcon from '@mui/icons-material/Check';
 import ErrorIcon from '@mui/icons-material/Error';
 import { useSetAtom } from 'jotai';
 import { namesAtom, pendingTxsAtom } from '../state/global/names';
-export enum Availability {
-  NULL = 'null',
-  LOADING = 'loading',
-  AVAILABLE = 'available',
-  NOT_AVAILABLE = 'not-available',
-}
+import { Availability } from '../interfaces';
 
 const Label = styled('label')`
   display: block;
@@ -53,7 +48,7 @@ const RegisterName = () => {
 
   const [isLoadingRegisterName, setIsLoadingRegisterName] = useState(false);
   const theme = useTheme();
-  const [nameFee, setNameFee] = useState(null);
+  const [nameFee, setNameFee] = useState<number | null>(null);
   const registerNameFunc = async () => {
     if (!address) return;
     const loadId = showLoading('Registering name...please wait');
@@ -88,14 +83,18 @@ const RegisterName = () => {
       setNameValue('');
       setIsOpen(false);
     } catch (error) {
-      showError(error?.message || 'Unable to register name');
+      if (error instanceof Error) {
+        showError(error.message);
+      } else {
+        showError('Unable to register name');
+      }
     } finally {
       setIsLoadingRegisterName(false);
       dismissToast(loadId);
     }
   };
 
-  const checkIfNameExisits = async (name) => {
+  const checkIfNameExisits = async (name: string) => {
     if (!name?.trim()) {
       setIsNameAvailable(Availability.NULL);
 
@@ -112,7 +111,6 @@ const RegisterName = () => {
       }
     } catch (error) {
       console.error(error);
-    } finally {
     }
   };
 
@@ -133,7 +131,7 @@ const RegisterName = () => {
         const data = await fetch(`/transactions/unitfee?txType=REGISTER_NAME`);
         const fee = await data.text();
 
-        setNameFee((Number(fee) / 1e8).toFixed(8));
+        setNameFee(Number((Number(fee) / 1e8).toFixed(8)));
       } catch (error) {
         console.error(error);
       }
@@ -263,13 +261,13 @@ const RegisterName = () => {
             Close
           </Button>
           <Button
-            disabled={
+            disabled={Boolean(
               !nameValue.trim() ||
-              isLoadingRegisterName ||
-              isNameAvailable !== Availability.AVAILABLE ||
-              !balance ||
-              (balance && nameFee && +balance < +nameFee)
-            }
+                isLoadingRegisterName ||
+                isNameAvailable !== Availability.AVAILABLE ||
+                !balance ||
+                (balance && nameFee && +balance < +nameFee)
+            )}
             variant="contained"
             onClick={registerNameFunc}
             autoFocus

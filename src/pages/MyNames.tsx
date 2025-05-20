@@ -1,16 +1,15 @@
-import { useAtom, useSetAtom } from 'jotai';
-import { useGlobal } from 'qapp-core';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { namesAtom } from '../state/global/names';
+import { useAtom } from 'jotai';
+import { useEffect, useMemo, useState } from 'react';
+import { namesAtom, primaryNameAtom } from '../state/global/names';
 import { NameTable } from '../components/Tables/NameTable';
-import { Box, Button, TextField } from '@mui/material';
+import { Box, TextField } from '@mui/material';
 import RegisterName from '../components/RegisterName';
 
 export const MyNames = () => {
   const [names] = useAtom(namesAtom);
   const [value, setValue] = useState('');
   const [filterValue, setFilterValue] = useState('');
-
+  const [primaryName] = useAtom(primaryNameAtom);
   useEffect(() => {
     const handler = setTimeout(() => {
       setFilterValue(value);
@@ -27,12 +26,15 @@ export const MyNames = () => {
     const filtered = !lowerFilter
       ? names
       : names.filter((item) => item.name.toLowerCase().includes(lowerFilter));
-    return filtered;
-  }, [names, filterValue]);
 
-  const primaryName = useMemo(() => {
-    return names[0]?.name || '';
-  }, [names]);
+    // Sort to move primaryName to the top if it exists in the list
+    return [...filtered].sort((a, b) => {
+      if (a.name === primaryName) return -1;
+      if (b.name === primaryName) return 1;
+      return 0;
+    });
+  }, [names, filterValue, primaryName]);
+
   return (
     <div>
       <Box

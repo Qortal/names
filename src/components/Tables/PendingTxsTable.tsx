@@ -11,15 +11,13 @@ import {
 import { useAtomValue } from 'jotai';
 import { forwardRef } from 'react';
 import { TableVirtuoso, TableComponents } from 'react-virtuoso';
-import { allSortedPendingTxsAtom } from '../../state/global/names';
+import {
+  allSortedPendingTxsAtom,
+  NameTransactions,
+} from '../../state/global/names';
 import { Spacer } from 'qapp-core';
 
-interface NameData {
-  name: string;
-  isSelling?: boolean;
-}
-
-const VirtuosoTableComponents: TableComponents<NameData> = {
+const VirtuosoTableComponents: TableComponents<NameTransactions> = {
   Scroller: forwardRef<HTMLDivElement>((props, ref) => (
     <TableContainer component={Paper} {...props} ref={ref} />
   )),
@@ -47,7 +45,7 @@ function fixedHeaderContent() {
   );
 }
 
-function rowContent(_index: number, row: NameData) {
+function rowContent(_index: number, row: NameTransactions) {
   return (
     <>
       <TableCell>{row.type}</TableCell>

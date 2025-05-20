@@ -4,13 +4,34 @@ interface State {
   isShow: boolean;
 }
 
-export const useModal = () => {
-  const [state, setState] = useState<State>({ isShow: false });
-  const [data, setData] = useState(null);
-  const promiseConfig = useRef<any>(null);
+export type ModalFunctions<
+  TData = { name: string },
+  TResult = unknown,
+> = ReturnType<typeof useModal<TData, TResult>>;
 
-  const show = useCallback((data) => {
-    setData(data);
+export type ModalFunctionsAvatar<
+  TData = { name: string; hasAvatar: boolean },
+  TResult = unknown,
+> = ReturnType<typeof useModal<TData, TResult>>;
+
+export type ModalFunctionsSellName<
+  TData = unknown,
+  TResult = unknown,
+> = ReturnType<typeof useModal<TData, TResult>>;
+
+export const useModal = <TData = unknown, TResult = unknown>() => {
+  const [state, setState] = useState<State>({ isShow: false });
+  const [data, setData] = useState<TData | undefined>(undefined);
+
+  const promiseConfig = useRef<{
+    resolve: (value: TResult) => void;
+    reject: () => void;
+  } | null>(null);
+
+  const show = useCallback((inputData?: TData): Promise<TResult> => {
+    if (inputData !== undefined && inputData !== null) {
+      setData(inputData);
+    }
     return new Promise((resolve, reject) => {
       promiseConfig.current = { resolve, reject };
       setState({ isShow: true });
@@ -19,14 +40,14 @@ export const useModal = () => {
 
   const hide = useCallback(() => {
     setState({ isShow: false });
-    setData(null);
+    setData(undefined);
   }, []);
 
   const onOk = useCallback(
-    (payload: any) => {
+    (result: TResult) => {
       const { resolve } = promiseConfig.current || {};
       hide();
-      resolve?.(payload);
+      resolve?.(result);
     },
     [hide]
   );

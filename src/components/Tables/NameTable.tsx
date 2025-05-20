@@ -20,19 +20,26 @@ import {
   CircularProgress,
   Avatar,
 } from '@mui/material';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useAtom, useSetAtom } from 'jotai';
 import { forwardRef, useCallback, useEffect, useMemo, useState } from 'react';
 import { TableVirtuoso, TableComponents } from 'react-virtuoso';
 import {
   forceRefreshAtom,
   forSaleAtom,
+  Names,
   namesAtom,
+  NamesForSale,
   pendingTxsAtom,
+  PendingTxsState,
   refreshAtom,
-  sortedPendingTxsByCategoryAtom,
 } from '../../state/global/names';
 import PersonIcon from '@mui/icons-material/Person';
-import { useModal } from '../../hooks/useModal';
+import {
+  ModalFunctions,
+  ModalFunctionsAvatar,
+  ModalFunctionsSellName,
+  useModal,
+} from '../../hooks/useModal';
 import {
   dismissToast,
   ImagePicker,
@@ -43,11 +50,13 @@ import {
   Spacer,
   useGlobal,
 } from 'qapp-core';
-import { Availability } from '../RegisterName';
 import CheckIcon from '@mui/icons-material/Check';
 import ErrorIcon from '@mui/icons-material/Error';
 import { BarSpinner } from '../../common/Spinners/BarSpinner/BarSpinner';
 import { usePendingTxs } from '../../hooks/useHandlePendingTxs';
+import { FetchPrimaryNameType, useFetchNames } from '../../hooks/useFetchNames';
+import { Availability } from '../../interfaces';
+import { SetStateAction } from 'jotai';
 interface NameData {
   name: string;
   isSelling?: boolean;
@@ -87,40 +96,48 @@ function fixedHeaderContent() {
   );
 }
 
-const ManageAvatar = ({ name, modalFunctionsAvatar }) => {
+interface ManageAvatarProps {
+  name: string;
+  modalFunctionsAvatar: ModalFunctionsAvatar;
+}
+
+const ManageAvatar = ({ name, modalFunctionsAvatar }: ManageAvatarProps) => {
   const { setHasAvatar, getHasAvatar } = usePendingTxs();
   const [refresh] = useAtom(refreshAtom); // just to subscribe
   const [hasAvatarState, setHasAvatarState] = useState<boolean | null>(null);
 
-  const checkIfAvatarExists = useCallback(async (name) => {
-    try {
-      const res = getHasAvatar(name);
-      if (res !== null) {
-        setHasAvatarState(res);
-        return;
-      }
-      const identifier = `qortal_avatar`;
-      const url = `/arbitrary/resources/searchsimple?mode=ALL&service=THUMBNAIL&identifier=${identifier}&limit=1&name=${name}&includemetadata=false&prefix=true`;
-      const response = await getNameQueue.enqueue(() =>
-        fetch(url, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        })
-      );
+  const checkIfAvatarExists = useCallback(
+    async (name: string) => {
+      try {
+        const res = getHasAvatar(name);
+        if (res !== null) {
+          setHasAvatarState(res);
+          return;
+        }
+        const identifier = `qortal_avatar`;
+        const url = `/arbitrary/resources/searchsimple?mode=ALL&service=THUMBNAIL&identifier=${identifier}&limit=1&name=${name}&includemetadata=false&prefix=true`;
+        const response = await getNameQueue.enqueue(() =>
+          fetch(url, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          })
+        );
 
-      const responseData = await response.json();
-      if (responseData?.length > 0) {
-        setHasAvatarState(true);
-        setHasAvatar(name, true);
-      } else {
-        setHasAvatarState(false);
+        const responseData = await response.json();
+        if (responseData?.length > 0) {
+          setHasAvatarState(true);
+          setHasAvatar(name, true);
+        } else {
+          setHasAvatarState(false);
+        }
+      } catch (error) {
+        console.log(error);
       }
-    } catch (error) {
-      console.log(error);
-    }
-  }, []);
+    },
+    [getHasAvatar, setHasAvatar]
+  );
   useEffect(() => {
     if (!name) return;
     checkIfAvatarExists(name);
@@ -131,7 +148,7 @@ const ManageAvatar = ({ name, modalFunctionsAvatar }) => {
       size="small"
       disabled={hasAvatarState === null}
       onClick={() =>
-        modalFunctionsAvatar.show({ name, hasAvatar: hasAvatarState })
+        modalFunctionsAvatar.show({ name, hasAvatar: Boolean(hasAvatarState) })
       }
     >
       {hasAvatarState === null ? (
@@ -145,23 +162,35 @@ const ManageAvatar = ({ name, modalFunctionsAvatar }) => {
   );
 };
 
+type SetPendingTxs = (update: SetStateAction<PendingTxsState>) => void;
+type SetNames = (update: SetStateAction<Names[]>) => void;
+
+type SetNamesForSale = (update: SetStateAction<NamesForSale[]>) => void;
 function rowContent(
   _index: number,
   row: NameData,
-  primaryName?: string,
-  modalFunctions?: any,
-  modalFunctionsUpdateName?: any,
-  modalFunctionsAvatar?: any,
-  modalFunctionsSellName?: any,
-  setPendingTxs?: any,
-  setNames?: any,
-  setNamesForSale?: any
+  primaryName: string,
+  address: string,
+  fetchPrimaryName: FetchPrimaryNameType,
+  numberOfNames: number,
+  modalFunctions: ModalFunctions,
+  modalFunctionsUpdateName: ReturnType<typeof useModal>,
+  modalFunctionsAvatar: ModalFunctionsAvatar,
+  modalFunctionsSellName: ReturnType<typeof useModal>,
+  setPendingTxs: SetPendingTxs,
+  setNames: SetNames,
+  setNamesForSale: SetNamesForSale
 ) {
   const handleUpdate = async (name: string) => {
+    if (name === primaryName && numberOfNames > 1) {
+      showError('Cannot update primary name while having other names');
+      return;
+    }
     const loadId = showLoading('Updating name...please wait');
 
     try {
-      const response = await modalFunctionsUpdateName.show();
+      const response = await modalFunctionsUpdateName.show(undefined);
+      if (typeof response !== 'string') throw new Error('Invalid name');
       const res = await qortalRequest({
         action: 'UPDATE_NAME',
         newName: response,
@@ -189,13 +218,18 @@ function rowContent(
                   };
                   return copyArray;
                 });
+                fetchPrimaryName(address);
               },
             }, // add or overwrite this transaction
           },
         };
       });
     } catch (error) {
-      showError(error?.message || 'Unable to update name');
+      if (error instanceof Error) {
+        showError(error?.message);
+        return;
+      }
+      showError('Unable to update name');
       console.log('error', error);
     } finally {
       dismissToast(loadId);
@@ -205,16 +239,22 @@ function rowContent(
   };
 
   const handleSell = async (name: string) => {
+    if (name === primaryName && numberOfNames > 1) {
+      showError('Cannot sell primary name while having other names');
+      return;
+    }
     const loadId = showLoading('Placing name for sale...please wait');
     try {
       if (name === primaryName) {
         await modalFunctions.show({ name });
       }
       const price = await modalFunctionsSellName.show(name);
+      if (typeof price !== 'string' && typeof price !== 'number')
+        throw new Error('Invalid price');
       const res = await qortalRequest({
         action: 'SELL_NAME',
         nameForSale: name,
-        salePrice: price,
+        salePrice: +price,
       });
       showSuccess('Placed name for sale');
       setPendingTxs((prev) => {
@@ -241,7 +281,12 @@ function rowContent(
         };
       });
     } catch (error) {
-      showError(error?.message || 'Unable to place name for sale');
+      if (error instanceof Error) {
+        showError(error?.message);
+
+        return;
+      }
+      showError('Unable to place name for sale');
       console.log('error', error);
     } finally {
       dismissToast(loadId);
@@ -275,7 +320,11 @@ function rowContent(
       });
       showSuccess('Removed name from market');
     } catch (error) {
-      showError(error?.message || 'Unable to remove name from market');
+      if (error instanceof Error) {
+        showError(error?.message);
+        return;
+      }
+      showError('Unable to remove name from market');
       console.log('error', error);
     } finally {
       dismissToast(loadId);
@@ -349,18 +398,20 @@ function rowContent(
   );
 }
 
-export const NameTable = ({ names, primaryName }) => {
+interface NameTableProps {
+  names: Names[];
+  primaryName: string;
+}
+export const NameTable = ({ names, primaryName }: NameTableProps) => {
   const setNames = useSetAtom(namesAtom);
+  const { auth } = useGlobal();
   const [namesForSale, setNamesForSale] = useAtom(forSaleAtom);
-  const modalFunctions = useModal();
+  const modalFunctions = useModal<{ name: string }>();
   const modalFunctionsUpdateName = useModal();
-  const modalFunctionsAvatar = useModal();
+  const modalFunctionsAvatar = useModal<{ name: string; hasAvatar: boolean }>();
   const modalFunctionsSellName = useModal();
-  const categoryAtom = useMemo(
-    () => sortedPendingTxsByCategoryAtom('REGISTER_NAME'),
-    []
-  );
-  const txs = useAtomValue(categoryAtom);
+  const { fetchPrimaryName } = useFetchNames();
+
   const setPendingTxs = useSetAtom(pendingTxsAtom);
 
   const namesToDisplay = useMemo(() => {
@@ -389,6 +440,9 @@ export const NameTable = ({ names, primaryName }) => {
             index,
             row,
             primaryName,
+            auth?.address || '',
+            fetchPrimaryName,
+            names?.length,
             modalFunctions,
             modalFunctionsUpdateName,
             modalFunctionsAvatar,
@@ -422,7 +476,7 @@ export const NameTable = ({ names, primaryName }) => {
             <Button
               color="warning"
               variant="contained"
-              onClick={modalFunctions.onOk}
+              onClick={() => modalFunctions.onOk(undefined)}
               autoFocus
             >
               continue
@@ -446,45 +500,45 @@ export const NameTable = ({ names, primaryName }) => {
   );
 };
 
-const AvatarModal = ({ modalFunctionsAvatar }) => {
+interface PickedAvatar {
+  base64: string;
+  name: string;
+}
+
+interface AvatarModalProps {
+  modalFunctionsAvatar: ModalFunctionsAvatar;
+}
+const AvatarModal = ({ modalFunctionsAvatar }: AvatarModalProps) => {
   const { setHasAvatar } = usePendingTxs();
   const forceRefresh = useSetAtom(forceRefreshAtom);
 
-  const [arbitraryFee, setArbitraryFee] = useState('');
-  const [pickedAvatar, setPickedAvatar] = useState<any>(null);
+  const [pickedAvatar, setPickedAvatar] = useState<null | PickedAvatar>(null);
   const [isLoadingPublish, setIsLoadingPublish] = useState(false);
-  useEffect(() => {
-    const getArbitraryName = async () => {
-      try {
-        const data = await fetch(`/transactions/unitfee?txType=ARBITRARY`);
-        const fee = await data.text();
-
-        setArbitraryFee((Number(fee) / 1e8).toFixed(8));
-      } catch (error) {
-        console.error(error);
-      }
-    };
-    getArbitraryName();
-  }, []);
 
   const publishAvatar = async () => {
     const loadId = showLoading('Publishing avatar...please wait');
     try {
+      if (!modalFunctionsAvatar?.data || !pickedAvatar?.base64)
+        throw new Error('Missing data');
       setIsLoadingPublish(true);
       await qortalRequest({
         action: 'PUBLISH_QDN_RESOURCE',
         base64: pickedAvatar?.base64,
         service: 'THUMBNAIL',
         identifier: 'qortal_avatar',
-        name: modalFunctionsAvatar.data.name,
+        name: modalFunctionsAvatar?.data?.name,
       });
-      setHasAvatar(modalFunctionsAvatar.data.name, true);
+      setHasAvatar(modalFunctionsAvatar?.data?.name, true);
       forceRefresh();
 
       showSuccess('Successfully published avatar');
-      modalFunctionsAvatar.onOk();
+      modalFunctionsAvatar.onOk(undefined);
     } catch (error) {
-      showError(error?.message || 'Unable to publish avatar');
+      if (error instanceof Error) {
+        showError(error?.message);
+        return;
+      }
+      showError('Unable to publish avatar');
     } finally {
       dismissToast(loadId);
       setIsLoadingPublish(false);
@@ -513,7 +567,7 @@ const AvatarModal = ({ modalFunctionsAvatar }) => {
             width: '100%',
           }}
         >
-          {modalFunctionsAvatar.data.hasAvatar && !pickedAvatar?.base64 && (
+          {modalFunctionsAvatar?.data?.hasAvatar && !pickedAvatar?.base64 && (
             <Avatar
               sx={{
                 height: '138px',
@@ -532,7 +586,7 @@ const AvatarModal = ({ modalFunctionsAvatar }) => {
                 width: '138px',
               }}
               src={`data:image/webp;base64,${pickedAvatar?.base64}`}
-              alt={modalFunctionsAvatar.data.name}
+              alt={modalFunctionsAvatar?.data?.name}
             >
               <CircularProgress />
             </Avatar>
@@ -575,18 +629,24 @@ const AvatarModal = ({ modalFunctionsAvatar }) => {
   );
 };
 
-const UpdateNameModal = ({ modalFunctionsUpdateName }) => {
+interface UpdateNameModalProps {
+  modalFunctionsUpdateName: ReturnType<typeof useModal>;
+}
+
+const UpdateNameModal = ({
+  modalFunctionsUpdateName,
+}: UpdateNameModalProps) => {
   const [step, setStep] = useState(1);
   const [newName, setNewName] = useState('');
   const [isNameAvailable, setIsNameAvailable] = useState<Availability>(
     Availability.NULL
   );
-  const [nameFee, setNameFee] = useState(null);
+  const [nameFee, setNameFee] = useState<null | number>(null);
   const balance = useGlobal().auth.balance;
 
   const theme = useTheme();
 
-  const checkIfNameExisits = async (name) => {
+  const checkIfNameExisits = async (name: string) => {
     if (!name?.trim()) {
       setIsNameAvailable(Availability.NULL);
 
@@ -603,7 +663,6 @@ const UpdateNameModal = ({ modalFunctionsUpdateName }) => {
       }
     } catch (error) {
       console.error(error);
-    } finally {
     }
   };
 
@@ -624,7 +683,7 @@ const UpdateNameModal = ({ modalFunctionsUpdateName }) => {
         const data = await fetch(`/transactions/unitfee?txType=REGISTER_NAME`);
         const fee = await data.text();
 
-        setNameFee((Number(fee) / 1e8).toFixed(8));
+        setNameFee(+(Number(fee) / 1e8).toFixed(8));
       } catch (error) {
         console.error(error);
       }
@@ -758,12 +817,12 @@ const UpdateNameModal = ({ modalFunctionsUpdateName }) => {
             <Button
               color="primary"
               variant="contained"
-              disabled={
+              disabled={Boolean(
                 !newName?.trim() ||
-                isNameAvailable !== Availability.AVAILABLE ||
-                !balance ||
-                (balance && nameFee && +balance < +nameFee)
-              }
+                  isNameAvailable !== Availability.AVAILABLE ||
+                  !balance ||
+                  (balance && nameFee && +balance < +nameFee)
+              )}
               onClick={() => modalFunctionsUpdateName.onOk(newName.trim())}
               autoFocus
             >
@@ -783,7 +842,11 @@ const UpdateNameModal = ({ modalFunctionsUpdateName }) => {
   );
 };
 
-const SellNameModal = ({ modalFunctionsSellName }) => {
+interface SellNameModalProps {
+  modalFunctionsSellName: ModalFunctionsSellName;
+}
+
+const SellNameModal = ({ modalFunctionsSellName }: SellNameModalProps) => {
   const [price, setPrice] = useState(0);
 
   return (

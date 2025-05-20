@@ -1,15 +1,16 @@
 import { useSetAtom } from 'jotai';
-import { forSaleAtom, namesAtom } from '../state/global/names';
+import { forSaleAtom, Names, namesAtom } from '../state/global/names';
 import { useCallback, useEffect } from 'react';
 import { useGlobal } from 'qapp-core';
 import { usePendingTxs } from './useHandlePendingTxs';
+import { useFetchNames } from './useFetchNames';
 
 export const useHandleNameData = () => {
   const setNamesForSale = useSetAtom(forSaleAtom);
   const setNames = useSetAtom(namesAtom);
   const address = useGlobal().auth.address;
   const { clearPendingTxs } = usePendingTxs();
-
+  const { fetchPrimaryName } = useFetchNames();
   const getNamesForSale = useCallback(async () => {
     try {
       const res = await fetch('/names/forsale?limit=0&reverse=true');
@@ -33,13 +34,22 @@ export const useHandleNameData = () => {
       clearPendingTxs(
         'REGISTER_NAMES',
         'name',
-        res?.map((item) => item.name)
+        res?.map((item: Names) => item.name)
       );
       setNames(res);
     } catch (error) {
       console.error(error);
     }
-  }, [address, setNames]);
+  }, [address, setNames, clearPendingTxs]);
+
+  const getPrimaryName = useCallback(async () => {
+    if (!address) return;
+    try {
+      fetchPrimaryName(address);
+    } catch (error) {
+      console.error(error);
+    }
+  }, [address, fetchPrimaryName]);
 
   // Initial fetch + interval
   useEffect(() => {
@@ -50,9 +60,8 @@ export const useHandleNameData = () => {
 
   useEffect(() => {
     getMyNames();
-    // const interval = setInterval(getMyNames, 120_000); // every 2 minutes
-    // return () => clearInterval(interval);
-  }, [getMyNames]);
+    getPrimaryName();
+  }, [getMyNames, getPrimaryName]);
 
   return null;
 };
