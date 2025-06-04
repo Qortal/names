@@ -8,8 +8,8 @@ import {
   Paper,
   Button,
 } from '@mui/material';
-import { useSetAtom } from 'jotai';
-import { forwardRef } from 'react';
+import { useAtom, useSetAtom } from 'jotai';
+import { forwardRef, useMemo } from 'react';
 import { TableVirtuoso, TableComponents } from 'react-virtuoso';
 import {
   forSaleAtom,
@@ -105,7 +105,9 @@ function rowContent(
   setNames: SetNames,
   setNamesForSale: SetNamesForSale,
   isPrimaryNameForSale: boolean,
-  t: TFunction
+  t: TFunction,
+  nameStrings: string[],
+  pendingBuyNameStrings: string[]
 ) {
   const handleBuy = async (name: string) => {
     const loadId = showLoading(
@@ -163,13 +165,17 @@ function rowContent(
     }
   };
 
+  const isNameOwned = nameStrings.includes(row.name);
+
+  const isNameBuying = pendingBuyNameStrings.includes(row.name);
+
   return (
     <>
       <TableCell>{row.name}</TableCell>
       <TableCell>{row.salePrice}</TableCell>
       <TableCell>
         <Button
-          disabled={isPrimaryNameForSale}
+          disabled={isPrimaryNameForSale || isNameOwned || isNameBuying}
           variant="contained"
           size="small"
           onClick={() => handleBuy(row.name)}
@@ -198,10 +204,20 @@ export const ForSaleTable = ({
   handleSort,
   isPrimaryNameForSale,
 }: ForSaleTable) => {
-  const setNames = useSetAtom(namesAtom);
+  const [names, setNames] = useAtom(namesAtom);
   const setNamesForSale = useSetAtom(forSaleAtom);
-  const setPendingTxs = useSetAtom(pendingTxsAtom);
+  const [pendingTxs, setPendingTxs] = useAtom(pendingTxsAtom);
   const { t } = useTranslation();
+  const nameStrings = useMemo(() => {
+    return names?.map((item) => item.name);
+  }, [names]);
+  const pendingBuyNameStrings = useMemo(() => {
+    const buyNameTxs = pendingTxs['BUY_NAME'];
+    if (!buyNameTxs) return [];
+
+    return Object.values(buyNameTxs).map((tx) => tx.name);
+  }, [pendingTxs]);
+
   return (
     <Paper
       sx={{
@@ -223,7 +239,9 @@ export const ForSaleTable = ({
             setNames,
             setNamesForSale,
             isPrimaryNameForSale,
-            t
+            t,
+            nameStrings,
+            pendingBuyNameStrings
           )
         }
       />

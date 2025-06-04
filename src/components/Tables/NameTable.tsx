@@ -63,6 +63,7 @@ import { TFunction } from 'i18next';
 interface NameData {
   name: string;
   isSelling?: boolean;
+  forceUpdateState?: number;
 }
 
 const getNameQueue = new RequestQueueWithPromise(2);
@@ -212,15 +213,17 @@ function rowContent(
       );
       return;
     }
-    const loadId = showLoading(
-      t('core:update_name.responses.loading', {
-        postProcess: 'capitalizeFirstChar',
-      })
-    );
+    let loadId = null;
 
     try {
       const response = await modalFunctionsUpdateName.show(undefined);
+      loadId = showLoading(
+        t('core:update_name.responses.loading', {
+          postProcess: 'capitalizeFirstChar',
+        })
+      );
       if (typeof response !== 'string') throw new Error('Invalid name');
+
       const res = await qortalRequest({
         action: 'UPDATE_NAME',
         newName: response,
@@ -264,13 +267,15 @@ function rowContent(
         return;
       }
       showError(
-        t('core:update_name.responses.loading', {
+        t('core:update_name.responses.error', {
           postProcess: 'capitalizeFirstChar',
         })
       );
       console.log('error', error);
     } finally {
-      dismissToast(loadId);
+      if (loadId) {
+        dismissToast(loadId);
+      }
     }
 
     // Your logic here
@@ -285,16 +290,17 @@ function rowContent(
       );
       return;
     }
-    const loadId = showLoading(
-      t('core:sell_name.responses.loading', {
-        postProcess: 'capitalizeFirstChar',
-      })
-    );
+    let loadId = null;
     try {
       if (name === primaryName) {
         await modalFunctions.show({ name });
       }
       const price = await modalFunctionsSellName.show(name);
+      loadId = showLoading(
+        t('core:sell_name.responses.loading', {
+          postProcess: 'capitalizeFirstChar',
+        })
+      );
       if (typeof price !== 'string' && typeof price !== 'number')
         throw new Error(
           t('core:sell_name.responses.error3', {
@@ -347,13 +353,15 @@ function rowContent(
       );
       console.log('error', error);
     } finally {
-      dismissToast(loadId);
+      if (loadId) {
+        dismissToast(loadId);
+      }
     }
   };
 
   const handleCancel = async (name: string) => {
     const loadId = showLoading(
-      t('core:cancel_name.responses.error2', {
+      t('core:cancel_name.responses.loading', {
         postProcess: 'capitalizeFirstChar',
       })
     );
@@ -381,7 +389,7 @@ function rowContent(
         };
       });
       showSuccess(
-        t('core:cancel_name.responses.error2', {
+        t('core:cancel_name.responses.success', {
           postProcess: 'capitalizeFirstChar',
         })
       );
@@ -391,12 +399,14 @@ function rowContent(
         return;
       }
       showError(
-        t('core:cancel_name.responses.error2', {
+        t('core:cancel_name.responses.error', {
           postProcess: 'capitalizeFirstChar',
         })
       );
     } finally {
-      dismissToast(loadId);
+      if (loadId) {
+        dismissToast(loadId);
+      }
     }
   };
 
@@ -408,8 +418,20 @@ function rowContent(
             display: 'flex',
             gap: '5px',
             alignItems: 'center',
+            wordBreak: 'break-word',
           }}
         >
+          <Avatar
+            sx={{
+              height: '30px',
+              width: '30px',
+              objectFit: 'contain',
+            }}
+            src={`/arbitrary/THUMBNAIL/${row.name}/qortal_avatar?forceUpdateState=${row?.forceUpdateState}`}
+            alt={row.name}
+          >
+            {row.name?.charAt(0)}
+          </Avatar>
           {primaryName === row.name && (
             <Tooltip
               title={t('core:tooltips.primary_name', {
@@ -467,6 +489,7 @@ function rowContent(
               color="error"
               size="small"
               onClick={() => handleCancel(row.name)}
+              variant="contained"
               disabled={isNameCurrentlyDoingATx}
             >
               {t('core:actions.cancel_sell', {
@@ -495,6 +518,7 @@ export const NameTable = ({ names, primaryName }: NameTableProps) => {
   const [namesForSale, setNamesForSale] = useAtom(forSaleAtom);
   const [pendingTxs] = useAtom(pendingTxsAtom);
   const { t } = useTranslation(['core']);
+  const [forceUpdateState, forceUpdate] = useState(0);
 
   const modalFunctions = useModal<{ name: string }>();
   const modalFunctionsUpdateName = useModal();
@@ -504,15 +528,20 @@ export const NameTable = ({ names, primaryName }: NameTableProps) => {
 
   const setPendingTxs = useSetAtom(pendingTxsAtom);
 
+  const triggerRerender = useCallback(() => {
+    forceUpdate((n) => n + 1);
+  }, []);
+
   const namesToDisplay = useMemo(() => {
     const namesForSaleString = namesForSale.map((item) => item.name);
     return names.map((name) => {
       return {
         name: name.name,
         isSelling: namesForSaleString.includes(name.name),
+        forceUpdateState,
       };
     });
-  }, [names, namesForSale]);
+  }, [names, namesForSale, forceUpdateState]);
 
   return (
     <Paper
@@ -596,7 +625,11 @@ export const NameTable = ({ names, primaryName }: NameTableProps) => {
         <UpdateNameModal modalFunctionsUpdateName={modalFunctionsUpdateName} />
       )}
       {modalFunctionsAvatar?.isShow && (
-        <AvatarModal modalFunctionsAvatar={modalFunctionsAvatar} />
+        <AvatarModal
+          modalFunctionsAvatar={modalFunctionsAvatar}
+          triggerRerender={triggerRerender}
+          forceUpdateState={forceUpdateState}
+        />
       )}
       {modalFunctionsSellName?.isShow && (
         <SellNameModal modalFunctionsSellName={modalFunctionsSellName} />
@@ -612,8 +645,14 @@ interface PickedAvatar {
 
 interface AvatarModalProps {
   modalFunctionsAvatar: ModalFunctionsAvatar;
+  triggerRerender: () => void;
+  forceUpdateState?: number;
 }
-const AvatarModal = ({ modalFunctionsAvatar }: AvatarModalProps) => {
+const AvatarModal = ({
+  modalFunctionsAvatar,
+  triggerRerender,
+  forceUpdateState,
+}: AvatarModalProps) => {
   const { t } = useTranslation();
   const { setHasAvatar } = usePendingTxs();
   const forceRefresh = useSetAtom(forceRefreshAtom);
@@ -651,6 +690,7 @@ const AvatarModal = ({ modalFunctionsAvatar }: AvatarModalProps) => {
         })
       );
       modalFunctionsAvatar.onOk(undefined);
+      triggerRerender();
     } catch (error) {
       if (error instanceof Error) {
         showError(error?.message);
@@ -699,10 +739,10 @@ const AvatarModal = ({ modalFunctionsAvatar }: AvatarModalProps) => {
                 height: '138px',
                 width: '138px',
               }}
-              src={`/arbitrary/THUMBNAIL/${modalFunctionsAvatar.data.name}/qortal_avatar?async=true`}
+              src={`/arbitrary/THUMBNAIL/${modalFunctionsAvatar.data.name}/qortal_avatar?forceUpdateState=${forceUpdateState}`}
               alt={modalFunctionsAvatar.data.name}
             >
-              <CircularProgress />
+              {modalFunctionsAvatar?.data?.name?.charAt(0)}
             </Avatar>
           )}
           {pickedAvatar?.base64 && (
@@ -1021,7 +1061,7 @@ interface SellNameModalProps {
 
 const SellNameModal = ({ modalFunctionsSellName }: SellNameModalProps) => {
   const { t } = useTranslation();
-  const [price, setPrice] = useState(0);
+  const [price, setPrice] = useState<number | string>(0);
 
   return (
     <Dialog
@@ -1044,10 +1084,24 @@ const SellNameModal = ({ modalFunctionsSellName }: SellNameModalProps) => {
         <TextField
           autoComplete="off"
           autoFocus
-          onChange={(e) => setPrice(+e.target.value)}
+          onChange={(e) => {
+            const raw = e.target.value;
+
+            // Allow empty input
+            if (raw === '') {
+              setPrice('');
+              return;
+            }
+
+            // Remove leading zeros and convert to number
+            const numericValue = +raw;
+            if (!isNaN(numericValue)) {
+              setPrice(numericValue);
+            }
+          }}
           value={price}
           type="number"
-          placeholder={t('core:new_name.choose_price', {
+          placeholder={t('core:sell_name.choose_price', {
             postProcess: 'capitalizeFirstChar',
           })}
         />
