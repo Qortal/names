@@ -11,14 +11,11 @@ export const FetchNamesProvider = ({ children }: { children: ReactNode }) => {
       if (!address) return;
       try {
         const res = await qortalRequest({
-          action: 'GET_ACCOUNT_NAMES',
+          action: 'GET_PRIMARY_NAME',
           address,
-          limit: 0,
-          offset: 0,
-          reverse: false,
         });
-        if (res?.length > 0) {
-          setPrimaryName(res[0]?.name);
+        if (res) {
+          setPrimaryName(res);
         }
       } catch (error) {
         console.error(error);
