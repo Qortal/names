@@ -831,12 +831,13 @@ const UpdateNameModal = ({
     try {
       const res = await fetch(`/names/` + name);
       const data = await res.json();
-      if (data?.message === 'name unknown') {
+      if (data?.message === 'name unknown' || data?.error) {
         setIsNameAvailable(Availability.AVAILABLE);
       } else {
         setIsNameAvailable(Availability.NOT_AVAILABLE);
       }
     } catch (error) {
+      setIsNameAvailable(Availability.AVAILABLE);
       console.error(error);
     }
   };
