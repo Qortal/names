@@ -17,6 +17,7 @@ import {
   showSuccess,
   Spacer,
   useGlobal,
+  useQortBalance,
 } from 'qapp-core';
 import { useEffect, useMemo, useState } from 'react';
 import { BarSpinner } from '../common/Spinners/BarSpinner/BarSpinner';
@@ -44,7 +45,7 @@ const RegisterName = () => {
   const { t } = useTranslation(['core']);
 
   const [isOpen, setIsOpen] = useState(false);
-  const balance = useGlobal().auth.balance;
+  const { value: balance } = useQortBalance();
   const setNames = useSetAtom(namesAtom);
   const [namesForSale] = useAtom(forSaleAtom);
   const [primaryName] = useAtom(primaryNameAtom);

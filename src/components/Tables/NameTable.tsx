@@ -50,6 +50,7 @@ import {
   showSuccess,
   Spacer,
   useGlobal,
+  useQortBalance,
 } from 'qapp-core';
 import CheckIcon from '@mui/icons-material/Check';
 import ErrorIcon from '@mui/icons-material/Error';
@@ -817,7 +818,7 @@ const UpdateNameModal = ({
   );
   const { t } = useTranslation();
   const [nameFee, setNameFee] = useState<null | number>(null);
-  const balance = useGlobal().auth.balance;
+  const { value: balance } = useQortBalance();
 
   const theme = useTheme();
 

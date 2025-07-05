@@ -5,8 +5,11 @@ import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import { PendingTxsTable } from '../components/Tables/PendingTxsTable';
 import { useTranslation } from 'react-i18next';
+import { useHandleNameData } from '../hooks/useHandleNameData';
 
 const Layout = () => {
+  useHandleNameData();
+
   useIframe();
   const navigate = useNavigate();
   const location = useLocation();

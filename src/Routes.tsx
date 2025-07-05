@@ -1,8 +1,7 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import App from './App';
-import Layout from './styles/Layout';
 import { Market } from './pages/Market';
-import { useHandleNameData } from './hooks/useHandleNameData';
+import { AppWrapper } from './AppWrapper';
 
 // Use a custom type if you need it
 interface CustomWindow extends Window {
@@ -12,13 +11,11 @@ const customWindow = window as unknown as CustomWindow;
 const baseUrl = customWindow?._qdnBase || '';
 
 export function Routes() {
-  useHandleNameData();
-
   const router = createBrowserRouter(
     [
       {
         path: '/',
-        element: <Layout />,
+        element: <AppWrapper />,
         children: [
           {
             index: true,
